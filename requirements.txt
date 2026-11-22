@@ -1,0 +1,6 @@
+# StreamForge IPTV Studio Cloud Dependencies
+# Uses Python 3 standard library by default.
+# Production WSGI/ASGI options:
+gunicorn>=21.2.0
+yt-dlp>=2025.1.0
+playwright>=1.49.0

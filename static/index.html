@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamForge — Custom IPTV M3U & M3U8 Playlist Creator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Ambient Background Gradient Orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <div class="app-shell">
+    <!-- LEFT SIDEBAR: Playlists, Health Monitor, Categories & Public URL -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">StreamForge</div>
+          <div class="brand-subtitle">IPTV M3U / Xtream Studio</div>
+        </div>
+      </div>
+
+      <!-- Playlists Section -->
+      <div class="sidebar-section">
+        <div class="section-header">
+          <span>PLAYLISTS</span>
+          <button class="btn-icon-sm" id="btnNewPlaylist" title="Create New Playlist">+ New</button>
+        </div>
+        <div class="playlist-list" id="playlistList"></div>
+      </div>
+
+      <!-- 2-Hour Fallback Guard & Health Monitor Quick Card -->
+      <div class="health-monitor-card" id="btnOpenBrokenCenter" title="View 2-Hour Fallback Guard & Non-Working Channels">
+        <div class="hm-top">
+          <span class="hm-title">🛡️ 2-Hour Fallback Guard</span>
+          <span class="hm-badge" id="sidebarBrokenBadge">0 Broken</span>
+        </div>
+        <div class="hm-sub" id="sidebarSchedulerSub">Auto-checks & fails over every 2 hours</div>
+      </div>
+
+      <!-- Categories / Groups Section -->
+      <div class="sidebar-section categories-section">
+        <div class="section-header">
+          <span>CATEGORIES / GROUPS</span>
+          <button class="btn-icon-sm" id="btnManageCategories" title="Add or Rename Categories">Manage</button>
+        </div>
+        <div class="category-list" id="categoryList"></div>
+      </div>
+
+      <!-- Public Accessible URL & LAN URL Card -->
+      <div class="sidebar-footer">
+        <div class="live-url-header">
+          <div class="live-url-label">
+            <span class="pulse-dot" id="tunnelPulseDot"></span>
+            <span id="liveUrlModeTitle">Public Accessible M3U URL</span>
+          </div>
+          <button class="btn-icon-xs" id="btnOpenTunnelModal" title="Configure Public Internet Tunnel & LAN URLs">⚙️ URLs</button>
+        </div>
+        <div class="live-url-box">
+          <input type="text" id="livePlaylistUrl" readonly value="Loading..." />
+          <button class="btn-copy" id="btnCopyLiveUrl" title="Copy Public M3U URL">Copy</button>
+        </div>
+        <div class="live-url-box" style="margin-top:4px;">
+          <input type="text" id="lanPlaylistUrl" readonly value="" title="Local Wi-Fi / LAN URL for Smart TVs" />
+          <button class="btn-copy" id="btnCopyLanUrl" title="Copy LAN Wi-Fi URL">LAN</button>
+        </div>
+        <div class="live-url-hint" id="publicUrlHint">Works in TiviMate, VLC, Kodi & IPTV Smarters</div>
+      </div>
+    </aside>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="workspace">
+      <!-- Top Playlist Hero Bar -->
+      <header class="playlist-hero">
+        <div class="hero-left">
+          <div class="hero-title-row">
+            <h1 id="currentPlaylistName">Loading Playlist...</h1>
+            <button class="btn-ghost-sm" id="btnEditPlaylistMeta" title="Rename Playlist & Edit EPG">
+              ✏️ Rename / Settings
+            </button>
+            <button class="btn-ghost-sm" id="btnDuplicatePlaylist" title="Duplicate Playlist">
+              📋 Duplicate
+            </button>
+            <button class="btn-ghost-sm danger-hover" id="btnDeletePlaylist" title="Delete Playlist">
+              🗑️ Delete
+            </button>
+          </div>
+          <p class="hero-description" id="currentPlaylistDesc"></p>
+          <div class="hero-badges">
+            <span class="badge badge-indigo" id="statChannels">0 Channels</span>
+            <span class="badge badge-violet" id="statCategories">0 Categories</span>
+            <span class="badge badge-cyan" id="statLogos">0% Logos</span>
+            <span class="badge badge-emerald" id="statOnline">0 Online</span>
+            <span class="badge badge-danger clickable-badge" id="statBrokenBadge" title="Click to open Non-Working Channels Center">🚨 0 Non-Working</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <button class="btn btn-secondary" id="btnOpenCloudHostModal" title="Deploy 24/7 Always-On Cloud Server (Render, Koyeb, Hugging Face)">
+            <span>☁️ 24/7 Cloud Host</span>
+          </button>
+          <button class="btn btn-secondary" id="btnOpenTunnelHero" title="Get Public Internet URL & LAN URL">
+            <span>🌐 Public URL</span>
+          </button>
+          <button class="btn btn-secondary" id="btnPreviewRawM3u" title="Inspect & Copy Raw #EXTM3U Code">
+            <span>{ } Raw M3U</span>
+          </button>
+          <div class="export-dropdown">
+            <button class="btn btn-gradient-accent" id="btnExportM3u">
+              <span>⬇ Export .M3U</span>
+            </button>
+            <button class="btn btn-secondary" id="btnExportM3u8" title="Download as .m3u8">
+              <span>.M3U8</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Action Toolbar -->
+      <section class="studio-toolbar">
+        <div class="toolbar-primary">
+          <button class="btn btn-primary" id="btnAddChannel">
+            <span>＋ Add Channel</span>
+          </button>
+          <button class="btn btn-source-finder" id="btnOpenSourceFinder" title="Find working .m3u8 stream sources by entering up to 100 channel names">
+            <span>🔎 Find Source (1–100 Names)</span>
+          </button>
+          <button class="btn btn-xtream" id="btnOpenXtreamImport" title="Bulk import from IPTV Xtream Codes login with channel checks & duplicate detection">
+            <span>🔐 Xtream Codes Import</span>
+          </button>
+          <button class="btn btn-implant" id="btnBulkImplant">
+            <span>⚡ Bulk .m3u8 Implant</span>
+          </button>
+          <button class="btn btn-secondary" id="btnImportM3u">
+            <span>📥 Auto-Import M3U</span>
+          </button>
+          <button class="btn btn-magic" id="btnAutoFindAllLogos">
+            <span>✨ Auto Logos</span>
+          </button>
+          <button class="btn btn-secondary" id="btnSyncTelevizoStreams" title="Auto-extract fresh .m3u8 tokens from televizo.live for all channels">
+            <span>📺 Sync Televizo</span>
+          </button>
+          <button class="btn btn-danger-soft" id="btnOpenBrokenToolbar">
+            <span>🚨 Non-Working (<span id="toolbarBrokenCount">0</span>)</span>
+          </button>
+          <button class="btn btn-secondary" id="btnSmartTools">
+            <span>🧰 Cleanup & Sort</span>
+          </button>
+        </div>
+
+        <div class="toolbar-filters">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search channel name, category, tvg-id, or .m3u8 URL..." />
+            <button class="search-clear hidden" id="btnClearSearch">✕</button>
+          </div>
+
+          <select id="statusFilter" class="select-dark">
+            <option value="all">All Statuses</option>
+            <option value="online">● Online Working</option>
+            <option value="offline">🚨 Non-Working / Offline</option>
+            <option value="missing_logo">Missing Logo</option>
+            <option value="has_logo">Has Logo</option>
+          </select>
+
+          <button class="btn btn-secondary" id="btnCheckStreams" title="Check visible streams now">
+            <span>🩺 Check Streams</span>
+          </button>
+
+          <div class="view-toggle">
+            <button class="view-btn active" id="btnViewGrid" title="Card Grid View">⊞ Grid</button>
+            <button class="view-btn" id="btnViewTable" title="Compact Table View">☰ Table</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bulk Selection Action Bar -->
+      <div class="bulk-bar hidden" id="bulkActionBar">
+        <div class="bulk-left">
+          <label class="checkbox-label">
+            <input type="checkbox" id="selectAllCheckbox" />
+            <span id="bulkSelectedCount">0 channels selected</span>
+          </label>
+        </div>
+        <div class="bulk-actions">
+          <button class="btn-sm btn-glass" id="btnBulkMoveCategory">📁 Change Category</button>
+          <button class="btn-sm btn-glass" id="btnBulkRemoveFromCategory">🏷️ Remove from Category</button>
+          <button class="btn-sm btn-glass" id="btnBulkAutoLogos">✨ Auto-Find Logos</button>
+          <button class="btn-sm btn-glass" id="btnBulkCheckStatus">🩺 Probe Selected</button>
+          <button class="btn-sm btn-danger" id="btnBulkDeleteChannels">🗑️ Remove from Playlist</button>
+        </div>
+      </div>
+
+      <!-- Channel Container (Grid or Table) -->
+      <section class="channels-viewport" id="channelsViewport">
+        <div class="channels-grid" id="channelsContainer"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- FLOATING / DOCKED LIVE HLS (.M3U8) STREAM PLAYER -->
+  <div class="live-player-dock hidden" id="livePlayerDock">
+    <div class="player-header">
+      <div class="player-info">
+        <span class="live-pill">LIVE</span>
+        <strong id="playerChannelName">Channel Preview</strong>
+        <span id="playerProxyBadge" class="badge-pill badge-warning hidden" style="font-size:10px; margin-left:6px;">⚡ Proxy Active</span>
+      </div>
+      <div class="player-controls-top" style="display:flex; align-items:center; gap:6px;">
+        <button class="btn-icon-xs" id="btnTogglePlayerProxy" title="Toggle CORS Bypass Proxy mode">🛡️ CORS Proxy: <span id="proxyToggleState">Auto</span></button>
+        <button class="btn-icon-xs" id="btnClosePlayer" title="Close Player">✕</button>
+      </div>
+    </div>
+    <div class="player-video-wrap">
+      <video id="hlsVideo" controls autoplay playsinline></video>
+      <div class="player-status-overlay hidden" id="playerStatusOverlay"></div>
+    </div>
+    <div class="player-footer">
+      <input type="text" id="playerStreamUrl" readonly />
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODALS                                                                  -->
+  <!-- ======================================================================= -->
+
+  <!-- 1. Add / Edit Channel + Auto Source Finder + Auto Logo Finder Modal -->
+  <div class="modal-backdrop hidden" id="channelModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2 id="channelModalTitle">Edit Channel</h2>
+        <button class="modal-close" data-close="channelModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="chId" />
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Channel Name *</label>
+            <div class="input-with-btn">
+              <input type="text" id="chName" placeholder="e.g., BBC News, Red Bull TV, Sky News" />
+              <button type="button" class="btn btn-source-finder" id="btnModalFindSource" title="Auto-find working .m3u8 stream URL by channel name">
+                🔎 Find Stream
+              </button>
+              <button type="button" class="btn btn-secondary" id="btnModalTelevizoExtract" title="Auto-extract fresh working stream token directly from Televizo.live">
+                📺 Televizo Live
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Category / Group (`group-title`)</label>
+            <input type="text" id="chCategory" list="categoryDatalist" placeholder="e.g., Sports, News, Movies" />
+            <datalist id="categoryDatalist"></datalist>
+          </div>
+        </div>
+
+        <!-- Inline Auto-Found Stream Sources Box inside Channel Modal -->
+        <div class="source-candidates-box hidden" id="modalSourceCandidatesBox">
+          <div class="preview-header">
+            <strong id="modalSourceStatusText">Searching live .m3u8 sources...</strong>
+            <button type="button" class="btn-link" id="btnCloseModalSources">Hide</button>
+          </div>
+          <div class="source-candidates-list" id="modalSourceCandidatesList"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Stream URL (`.m3u8`, `.ts`, `http://...`) *</label>
+          <div class="input-with-btn">
+            <input type="text" id="chUrl" placeholder="https://example.com/live/channel/master.m3u8" />
+            <button type="button" class="btn btn-secondary" id="btnTestInModal">▶ Test Stream</button>
+          </div>
+        </div>
+
+        <!-- Channel Backup Sources (Auto-Failover Guard) Panel -->
+        <div class="tool-card mt-12" id="channelBackupsPanel">
+          <div class="label-with-action">
+            <div>
+              <strong style="color:#60a5fa;">🛡️ Backup Stream Sources (Auto-Failover Guard)</strong>
+              <div style="font-size:0.8rem; color:#94a3b8;">Stores 3-4 alternative URLs. The 2-hour Fallback Guard automatically swaps to the best working backup if the primary stream expires.</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnAutoFindChannelBackups">⚡ Auto-Find 3-4 Backups</button>
+          </div>
+          <div id="channelBackupsList" class="mt-8">
+            <div style="color:#64748b; font-size:0.85rem;">No backup sources stored yet. Click Auto-Find or add below.</div>
+          </div>
+          <div class="input-with-btn mt-8">
+            <input type="text" id="newBackupUrlInput" placeholder="Add custom backup .m3u8 URL..." style="font-size:0.85rem;" />
+            <button type="button" class="btn btn-primary btn-sm" id="btnAddManualBackupSource">＋ Add Backup</button>
+          </div>
+        </div>
+
+        <!-- Logo Editor & Auto-Finder Section -->
+        <div class="logo-finder-panel">
+          <div class="logo-preview-box">
+            <img id="chLogoPreview" src="" alt="Logo Preview" />
+          </div>
+          <div class="logo-inputs">
+            <label>Channel Logo URL (`tvg-logo`)</label>
+            <div class="input-with-btn">
+              <input type="text" id="chLogo" placeholder="https://... or click Auto-Find Logo" />
+              <button type="button" class="btn btn-magic" id="btnModalFindLogo">✨ Auto-Find Logo</button>
+            </div>
+            <div class="logo-candidates-row" id="modalLogoCandidates"></div>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>EPG ID (`tvg-id`)</label>
+            <input type="text" id="chTvgId" placeholder="e.g., BBCNews.uk" />
+          </div>
+          <div class="form-group">
+            <label>EPG Name (`tvg-name`)</label>
+            <input type="text" id="chTvgName" placeholder="Optional EPG match name" />
+          </div>
+          <div class="form-group">
+            <label>Channel Number (`tvg-chno`)</label>
+            <input type="number" id="chNumber" placeholder="e.g., 101" />
+          </div>
+        </div>
+
+        <details class="advanced-details">
+          <summary>Advanced Stream Headers (`#EXTVLCOPT` User-Agent & HTTP Referrer)</summary>
+          <div class="form-grid-2 mt-10">
+            <div class="form-group">
+              <label>Custom HTTP User-Agent</label>
+              <input type="text" id="chUserAgent" placeholder="e.g., VLC/3.0.20 LibVLC/3.0.20" />
+            </div>
+            <div class="form-group">
+              <label>HTTP Referrer</label>
+              <input type="text" id="chReferrer" placeholder="https://player.example.com/" />
+            </div>
+          </div>
+        </details>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="channelModal">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveChannel">Save Channel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Dedicated Auto-Find Channel Source Modal (Supports Bulk List ≤ 100 Names + Single Deep Search) -->
+  <div class="modal-backdrop hidden" id="sourceFinderModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>🔎 Auto-Find Channel Stream Sources by Name (1 to 100 Channels)</h2>
+          <p class="modal-subtitle">Enter a list of up to 100 channel names (or search a single channel) to automatically discover & verify live `.m3u8` stream sources.</p>
+        </div>
+        <button class="modal-close" data-close="sourceFinderModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs-bar">
+          <button class="tab-btn active" id="tabBtnBulkSource" data-srctab="bulk">📋 Bulk Channel Name List (Up to 100 Names)</button>
+          <button class="tab-btn" id="tabBtnSingleSource" data-srctab="single">🔍 Single Channel Deep Search</button>
+          <button class="tab-btn" id="tabBtnGithubSource" data-srctab="github">🐙 GitHub & Web Stream Finder</button>
+          <button class="tab-btn" id="tabBtnProviders" data-srctab="providers">🌐 Connected Sources (<span id="tabProvidersStreamCount">25,000+</span> Streams)</button>
+        </div>
+
+        <!-- TAB A: BULK CHANNEL NAMES LIST (UP TO 100 CHANNELS) -->
+        <div id="sourceTabBulk">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <div class="label-with-action">
+                <label>Enter Channel Names (1 per line — max 100 channels)</label>
+                <span class="badge badge-indigo" id="bulkSourceLineCount">0 / 100 channels</span>
+              </div>
+              <textarea id="bulkSourceNamesInput" rows="7" placeholder="Enter up to 100 channel names (one per line), e.g.:
+BBC News
+Sky News
+Red Bull TV
+Bloomberg TV
+CBS News
+NASA TV
+DW English
+Al Jazeera English
+France 24 English
+NHK World Japan"></textarea>
+              <div class="preset-urls">
+                <button type="button" class="btn-link" id="btnLoadSampleBulkNames">Load Sample 12 Channel Names</button>
+                <span>·</span>
+                <button type="button" class="btn-link" id="btnLoadBrokenIntoBulkNames">Load Non-Working Channel Names (≤100)</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Bulk Search & Import Settings</label>
+              <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
+                <div>
+                  <label style="font-size:0.78rem; color:#94a3b8; margin-bottom:4px; display:block;">Target Country / Region</label>
+                  <select id="bulkSourceCountryFilter" style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:6px; padding:7px 10px; font-size:0.82rem; width:100%;">
+                    <option value="">🌐 Any Country (Auto-Detect)</option>
+                    <optgroup label="⭐ Popular & Major Broadcasts">
+                      <option value="GB">🇬🇧 United Kingdom (UK)</option>
+                      <option value="US">🇺🇸 United States (USA)</option>
+                      <option value="LT">🇱🇹 Lithuania (Lietuva)</option>
+                      <option value="DE">🇩🇪 Germany (Deutschland)</option>
+                      <option value="PL">🇵🇱 Poland (Polska)</option>
+                      <option value="FR">🇫🇷 France</option>
+                      <option value="ES">🇪🇸 Spain (España)</option>
+                      <option value="IT">🇮🇹 Italy (Italia)</option>
+                      <option value="CA">🇨🇦 Canada</option>
+                      <option value="AU">🇦🇺 Australia</option>
+                      <option value="IN">🇮🇳 India</option>
+                    </optgroup>
+                    <optgroup label="🇪🇺 Europe">
+                      <option value="IE">🇮🇪 Ireland</option>
+                      <option value="NL">🇳🇱 Netherlands</option>
+                      <option value="BE">🇧🇪 Belgium</option>
+                      <option value="CH">🇨🇭 Switzerland</option>
+                      <option value="AT">🇦🇹 Austria</option>
+                      <option value="PT">🇵🇹 Portugal</option>
+                      <option value="SE">🇸🇪 Sweden</option>
+                      <option value="NO">🇳🇴 Norway</option>
+                      <option value="DK">🇩🇰 Denmark</option>
+                      <option value="FI">🇫🇮 Finland</option>
+                      <option value="IS">🇮🇸 Iceland</option>
+                      <option value="LV">🇱🇻 Latvia (Latvija)</option>
+                      <option value="EE">🇪🇪 Estonia (Eesti)</option>
+                      <option value="CZ">🇨🇿 Czech Republic (Česko)</option>
+                      <option value="SK">🇸🇰 Slovakia</option>
+                      <option value="HU">🇭🇺 Hungary</option>
+                      <option value="RO">🇷🇴 Romania</option>
+                      <option value="BG">🇧🇬 Bulgaria</option>
+                      <option value="HR">🇭🇷 Croatia (Hrvatska)</option>
+                      <option value="RS">🇷🇸 Serbia (Srbija)</option>
+                      <option value="SI">🇸🇮 Slovenia</option>
+                      <option value="BA">🇧🇦 Bosnia & Herzegovina</option>
+                      <option value="ME">🇲🇪 Montenegro</option>
+                      <option value="MK">🇲🇰 North Macedonia</option>
+                      <option value="AL">🇦🇱 Albania</option>
+                      <option value="GR">🇬🇷 Greece</option>
+                      <option value="CY">🇨🇾 Cyprus</option>
+                      <option value="MT">🇲🇹 Malta</option>
+                      <option value="LU">🇱🇺 Luxembourg</option>
+                      <option value="MD">🇲🇩 Moldova</option>
+                      <option value="UA">🇺🇦 Ukraine (Україна)</option>
+                      <option value="RU">🇷🇺 Russia</option>
+                      <option value="TR">🇹🇷 Turkey (Türkiye)</option>
+                      <option value="GE">🇬🇪 Georgia</option>
+                      <option value="AM">🇦🇲 Armenia</option>
+                      <option value="AZ">🇦🇿 Azerbaijan</option>
+                    </optgroup>
+                    <optgroup label="🌎 Americas">
+                      <option value="LATAM">🌎 Latin America (General)</option>
+                      <option value="BR">🇧🇷 Brazil (Brasil)</option>
+                      <option value="MX">🇲🇽 Mexico (México)</option>
+                      <option value="AR">🇦🇷 Argentina</option>
+                      <option value="CO">🇨🇴 Colombia</option>
+                      <option value="CL">🇨🇱 Chile</option>
+                      <option value="PE">🇵🇪 Peru (Perú)</option>
+                      <option value="VE">🇻🇪 Venezuela</option>
+                      <option value="EC">🇪🇨 Ecuador</option>
+                      <option value="BO">🇧🇴 Bolivia</option>
+                      <option value="PY">🇵🇾 Paraguay</option>
+                      <option value="UY">🇺🇾 Uruguay</option>
+                      <option value="CR">🇨🇷 Costa Rica</option>
+                      <option value="PA">🇵🇦 Panama</option>
+                      <option value="GT">🇬🇹 Guatemala</option>
+                      <option value="HN">🇭🇳 Honduras</option>
+                      <option value="SV">🇸🇻 El Salvador</option>
+                      <option value="NI">🇳🇮 Nicaragua</option>
+                      <option value="CU">🇨🇺 Cuba</option>
+                      <option value="DO">🇩🇴 Dominican Republic</option>
+                      <option value="PR">🇵🇷 Puerto Rico</option>
+                      <option value="JM">🇯🇲 Jamaica</option>
+                    </optgroup>
+                    <optgroup label="🌏 Asia & Pacific">
+                      <option value="NZ">🇳🇿 New Zealand</option>
+                      <option value="JP">🇯🇵 Japan (日本)</option>
+                      <option value="KR">🇰🇷 South Korea (한국)</option>
+                      <option value="CN">🇨🇳 China (中国)</option>
+                      <option value="TW">🇹🇼 Taiwan (台灣)</option>
+                      <option value="HK">🇭🇰 Hong Kong (香港)</option>
+                      <option value="SG">🇸🇬 Singapore</option>
+                      <option value="MY">🇲🇾 Malaysia</option>
+                      <option value="ID">🇮🇩 Indonesia</option>
+                      <option value="PH">🇵🇭 Philippines</option>
+                      <option value="TH">🇹🇭 Thailand</option>
+                      <option value="VN">🇻🇳 Vietnam</option>
+                      <option value="PK">🇵🇰 Pakistan</option>
+                      <option value="BD">🇧🇩 Bangladesh</option>
+                      <option value="LK">🇱🇰 Sri Lanka</option>
+                      <option value="NP">🇳🇵 Nepal</option>
+                      <option value="KZ">🇰🇿 Kazakhstan</option>
+                      <option value="UZ">🇺🇿 Uzbekistan</option>
+                    </optgroup>
+                    <optgroup label="🌍 Middle East & Africa">
+                      <option value="ARAB">🌍 Arab World (General)</option>
+                      <option value="AE">🇦🇪 United Arab Emirates</option>
+                      <option value="SA">🇸🇦 Saudi Arabia</option>
+                      <option value="QA">🇶🇦 Qatar</option>
+                      <option value="KW">🇰🇼 Kuwait</option>
+                      <option value="BH">🇧🇭 Bahrain</option>
+                      <option value="OM">🇴🇲 Oman</option>
+                      <option value="JO">🇯🇴 Jordan</option>
+                      <option value="LB">🇱🇧 Lebanon</option>
+                      <option value="IQ">🇮🇶 Iraq</option>
+                      <option value="EG">🇪🇬 Egypt (مصر)</option>
+                      <option value="IL">🇮🇱 Israel</option>
+                      <option value="MA">🇲🇦 Morocco (المغرب)</option>
+                      <option value="DZ">🇩🇿 Algeria</option>
+                      <option value="TN">🇹🇳 Tunisia</option>
+                      <option value="ZA">🇿🇦 South Africa</option>
+                      <option value="NG">🇳🇬 Nigeria</option>
+                      <option value="KE">🇰🇪 Kenya</option>
+                      <option value="GH">🇬🇭 Ghana</option>
+                      <option value="SN">🇸🇳 Senegal</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size:0.78rem; color:#94a3b8; margin-bottom:4px; display:block;">Default Category</label>
+                  <input type="text" id="bulkSourceTargetCategory" list="categoryDatalist" placeholder="e.g. Live TV, Sports" value="" style="padding:7px 10px;" />
+                </div>
+              </div>
+              <div class="checkbox-stack mt-8">
+                <label class="checkbox-label" title="Enforces strict channel identity, number edition alignment, and country filtering to avoid wrong channels">
+                  <input type="checkbox" id="bulkSourceStrictMode" checked />
+                  <span>🎯 <strong>Maximum Accuracy Mode</strong> (Strict country & edition alignment, eliminates wrong channel matches)</span>
+                </label>
+                <label class="checkbox-label" title="Discovers verified 24/7 official YouTube Live broadcasts for news, sports & specialty channels">
+                  <input type="checkbox" id="bulkSourceIncludeYoutube" checked />
+                  <span>▶️ <strong>Include YouTube 24/7 Live Broadcasts</strong> (Sky News, DW, NASA, Bloomberg, Euronews, etc.)</span>
+                </label>
+                <label class="checkbox-label" title="Discovers verified official RuTube 10-year live broadcasts for Russian & CIS channels">
+                  <input type="checkbox" id="bulkSourceIncludeRutube" checked />
+                  <span>🟢 <strong>Include RuTube 24/7 Live Broadcasts</strong> (Первый, Россия 1, Россия 24, СТС Love, ТНТ, RT News, etc.)</span>
+                </label>
+                <label class="checkbox-label" title="Extracts fresh live streams directly from Televizo.live">
+                  <input type="checkbox" id="bulkSourceIncludeTelevizo" checked />
+                  <span>📺 <strong>Include Televizo.live Live Extractor</strong> (1HD, Ani, 24 Dok, Big Planet, and 330+ channels)</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="bulkSourceProbeLive" checked />
+                  <span>🩺 Probe each found `.m3u8` stream live for Online status & latency</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="bulkSourceIncludeWeb" checked />
+                  <span>🌐 Live Web & GitHub Search fallback for unmatched channels</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="bulkSourceOnlyOnline" />
+                  <span>✅ Only import/apply working (Online) streams</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="bulkSourceSkipDups" checked />
+                  <span>🛡️ Skip duplicate URLs already in current playlist</span>
+                </label>
+              </div>
+              <div class="btn-row mt-12">
+                <button type="button" class="btn btn-source-finder" id="btnRunBulkSourceSearch">
+                  🔎 Find Sources for List (≤100)
+                </button>
+                <button type="button" class="btn btn-primary hidden" id="btnImportBulkFoundSources">
+                  📥 Add Found Channels to Playlist
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="upload-check-table-wrap mt-10 hidden" id="bulkSourceResultsWrap"></div>
+        </div>
+
+        <!-- TAB B: SINGLE CHANNEL DEEP SEARCH -->
+        <div id="sourceTabSingle" class="hidden">
+          <input type="hidden" id="sourceFinderReplaceChannelId" value="" />
+          <div class="replace-banner hidden" id="sourceFinderReplaceBanner">
+            <span>🔄 Finding replacement stream source for: <strong id="sourceFinderReplaceName"></strong></span>
+            <button type="button" class="btn-link" id="btnClearReplaceMode">Switch to Add New Mode</button>
+          </div>
+
+          <div class="input-with-btn mt-8" style="flex-wrap:wrap; gap:8px;">
+            <input type="text" id="sourceFinderQuery" style="flex:2; min-width:240px;" placeholder="Type channel name (e.g., BBC One, Sky Sports Football, LRT Televizija, Fox News, TVP 1)..." />
+            <select id="sourceFinderCountryFilter" style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:6px; padding:6px 10px; font-size:0.82rem;">
+              <option value="">🌐 Any Country</option>
+              <optgroup label="⭐ Popular & Major Broadcasts">
+                <option value="GB">🇬🇧 United Kingdom</option>
+                <option value="US">🇺🇸 United States</option>
+                <option value="LT">🇱🇹 Lithuania</option>
+                <option value="DE">🇩🇪 Germany</option>
+                <option value="PL">🇵🇱 Poland</option>
+                <option value="FR">🇫🇷 France</option>
+                <option value="ES">🇪🇸 Spain</option>
+                <option value="IT">🇮🇹 Italy</option>
+                <option value="CA">🇨🇦 Canada</option>
+                <option value="AU">🇦🇺 Australia</option>
+                <option value="IN">🇮🇳 India</option>
+              </optgroup>
+              <optgroup label="🇪🇺 Europe">
+                <option value="IE">🇮🇪 Ireland</option>
+                <option value="NL">🇳🇱 Netherlands</option>
+                <option value="BE">🇧🇪 Belgium</option>
+                <option value="CH">🇨🇭 Switzerland</option>
+                <option value="AT">🇦🇹 Austria</option>
+                <option value="PT">🇵🇹 Portugal</option>
+                <option value="SE">🇸🇪 Sweden</option>
+                <option value="NO">🇳🇴 Norway</option>
+                <option value="DK">🇩🇰 Denmark</option>
+                <option value="FI">🇫🇮 Finland</option>
+                <option value="IS">🇮🇸 Iceland</option>
+                <option value="LV">🇱🇻 Latvia</option>
+                <option value="EE">🇪🇪 Estonia</option>
+                <option value="CZ">🇨🇿 Czech Republic</option>
+                <option value="SK">🇸🇰 Slovakia</option>
+                <option value="HU">🇭🇺 Hungary</option>
+                <option value="RO">🇷🇴 Romania</option>
+                <option value="BG">🇧🇬 Bulgaria</option>
+                <option value="HR">🇭🇷 Croatia</option>
+                <option value="RS">🇷🇸 Serbia</option>
+                <option value="SI">🇸🇮 Slovenia</option>
+                <option value="BA">🇧🇦 Bosnia & Herzegovina</option>
+                <option value="ME">🇲🇪 Montenegro</option>
+                <option value="MK">🇲🇰 North Macedonia</option>
+                <option value="AL">🇦🇱 Albania</option>
+                <option value="GR">🇬🇷 Greece</option>
+                <option value="CY">🇨🇾 Cyprus</option>
+                <option value="MT">🇲🇹 Malta</option>
+                <option value="LU">🇱🇺 Luxembourg</option>
+                <option value="MD">🇲🇩 Moldova</option>
+                <option value="UA">🇺🇦 Ukraine</option>
+                <option value="RU">🇷🇺 Russia</option>
+                <option value="TR">🇹🇷 Turkey</option>
+                <option value="GE">🇬🇪 Georgia</option>
+                <option value="AM">🇦🇲 Armenia</option>
+                <option value="AZ">🇦🇿 Azerbaijan</option>
+              </optgroup>
+              <optgroup label="🌎 Americas">
+                <option value="LATAM">🌎 Latin America</option>
+                <option value="BR">🇧🇷 Brazil</option>
+                <option value="MX">🇲🇽 Mexico</option>
+                <option value="AR">🇦🇷 Argentina</option>
+                <option value="CO">🇨🇴 Colombia</option>
+                <option value="CL">🇨🇱 Chile</option>
+                <option value="PE">🇵🇪 Peru</option>
+                <option value="VE">🇻🇪 Venezuela</option>
+                <option value="EC">🇪🇨 Ecuador</option>
+                <option value="BO">🇧🇴 Bolivia</option>
+                <option value="PY">🇵🇾 Paraguay</option>
+                <option value="UY">🇺🇾 Uruguay</option>
+                <option value="CR">🇨🇷 Costa Rica</option>
+                <option value="PA">🇵🇦 Panama</option>
+                <option value="GT">🇬🇹 Guatemala</option>
+                <option value="HN">🇭🇳 Honduras</option>
+                <option value="SV">🇸🇻 El Salvador</option>
+                <option value="NI">🇳🇮 Nicaragua</option>
+                <option value="CU">🇨🇺 Cuba</option>
+                <option value="DO">🇩🇴 Dominican Republic</option>
+                <option value="PR">🇵🇷 Puerto Rico</option>
+                <option value="JM">🇯🇲 Jamaica</option>
+              </optgroup>
+              <optgroup label="🌏 Asia & Pacific">
+                <option value="NZ">🇳🇿 New Zealand</option>
+                <option value="JP">🇯🇵 Japan</option>
+                <option value="KR">🇰🇷 South Korea</option>
+                <option value="CN">🇨🇳 China</option>
+                <option value="TW">🇹🇼 Taiwan</option>
+                <option value="HK">🇭🇰 Hong Kong</option>
+                <option value="SG">🇸🇬 Singapore</option>
+                <option value="MY">🇲🇾 Malaysia</option>
+                <option value="ID">🇮🇩 Indonesia</option>
+                <option value="PH">🇵🇭 Philippines</option>
+                <option value="TH">🇹🇭 Thailand</option>
+                <option value="VN">🇻🇳 Vietnam</option>
+                <option value="PK">🇵🇰 Pakistan</option>
+                <option value="BD">🇧🇩 Bangladesh</option>
+                <option value="LK">🇱🇰 Sri Lanka</option>
+                <option value="NP">🇳🇵 Nepal</option>
+                <option value="KZ">🇰🇿 Kazakhstan</option>
+                <option value="UZ">UZ Uzbekistan</option>
+              </optgroup>
+              <optgroup label="🌍 Middle East & Africa">
+                <option value="ARAB">🌍 Arab World</option>
+                <option value="AE">🇦🇪 United Arab Emirates</option>
+                <option value="SA">🇸🇦 Saudi Arabia</option>
+                <option value="QA">🇶🇦 Qatar</option>
+                <option value="KW">🇰🇼 Kuwait</option>
+                <option value="BH">🇧🇭 Bahrain</option>
+                <option value="OM">🇴🇲 Oman</option>
+                <option value="JO">🇯🇴 Jordan</option>
+                <option value="LB">🇱🇧 Lebanon</option>
+                <option value="IQ">🇮🇶 Iraq</option>
+                <option value="EG">🇪🇬 Egypt</option>
+                <option value="IL">🇮🇱 Israel</option>
+                <option value="MA">🇲🇦 Morocco</option>
+                <option value="DZ">🇩🇿 Algeria</option>
+                <option value="TN">🇹🇳 Tunisia</option>
+                <option value="ZA">🇿🇦 South Africa</option>
+                <option value="NG">🇳🇬 Nigeria</option>
+                <option value="KE">🇰🇪 Kenya</option>
+                <option value="GH">🇬🇭 Ghana</option>
+                <option value="SN">🇸🇳 Senegal</option>
+              </optgroup>
+            </select>
+            <label class="checkbox-label" style="white-space:nowrap;" title="Strictly enforce channel identity, number edition and country match">
+              <input type="checkbox" id="sourceFinderStrictMode" checked />
+              <span>🎯 Max Accuracy</span>
+            </label>
+            <label class="checkbox-label" style="white-space:nowrap;" title="Include verified YouTube 24/7 official live streams">
+              <input type="checkbox" id="sourceFinderIncludeYoutube" checked />
+              <span>▶️ YouTube Live</span>
+            </label>
+            <label class="checkbox-label" style="white-space:nowrap;" title="Include verified RuTube official 10-year live streams">
+              <input type="checkbox" id="sourceFinderIncludeRutube" checked />
+              <span>🟢 RuTube Live</span>
+            </label>
+            <label class="checkbox-label" style="white-space:nowrap;" title="Extract fresh live stream directly from Televizo.live">
+              <input type="checkbox" id="sourceFinderIncludeTelevizo" checked />
+              <span>📺 Televizo.live</span>
+            </label>
+            <label class="checkbox-label" style="white-space:nowrap;">
+              <input type="checkbox" id="sourceFinderProbeLive" checked />
+              <span>🩺 Probe live</span>
+            </label>
+            <label class="checkbox-label" style="white-space:nowrap;">
+              <input type="checkbox" id="sourceFinderIncludeWeb" checked />
+              <span>🌐 Web & GitHub</span>
+            </label>
+            <button type="button" class="btn btn-source-finder" id="btnRunSourceFinder">🔎 Search Sources</button>
+          </div>
+
+          <div class="preset-urls">
+            <span>Popular Searches:</span>
+            <button type="button" class="source-preset-chip preset-chip" data-q="BBC One">BBC One</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="Sky Sports Football">Sky Sports Football</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="LRT Televizija">LRT Televizija</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="Fox News">Fox News</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="Eurosport 1">Eurosport 1</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="TVP 1">TVP 1</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="Red Bull TV">Red Bull TV</button>
+            <button type="button" class="source-preset-chip preset-chip" data-q="Bloomberg">Bloomberg TV</button>
+          </div>
+
+          <div class="source-results-container mt-10" id="sourceFinderResults">
+            <div class="empty-state" style="padding:32px;">
+              <p>Enter a channel name above and click <strong>Search Sources</strong> to discover verified `.m3u8` streams across 7 platforms + live web search with 🎯 Maximum Accuracy.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB C: GITHUB & LIVE WEB STREAM FINDER TOOL -->
+        <div id="sourceTabGithub" class="hidden">
+          <div class="tool-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(59, 130, 246, 0.08)); border-color: rgba(168, 85, 247, 0.35);">
+            <div class="label-with-action">
+              <div>
+                <h3 style="margin-bottom:4px; color:#fff;">🐙 GitHub & Open-Web Stream Repository Discovery</h3>
+                <p style="margin:0; font-size:0.82rem; color:#cbd5e1;">Search public open-source GitHub repositories & the live web for community-maintained IPTV playlists, topic channels, or specific regional broadcasts.</p>
+              </div>
+            </div>
+            <div class="input-with-btn mt-10">
+              <input type="text" id="githubRepoSearchQuery" placeholder="Search GitHub IPTV repos (e.g., Sports, News, Movies, Lithuania, Anime, UK, Latino, Documentaries)..." />
+              <button type="button" class="btn btn-primary" id="btnRunGithubRepoSearch">🔎 Search GitHub & Web</button>
+            </div>
+            <div class="preset-urls mt-8">
+              <span>Quick Topics:</span>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="sports">Sports</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="news">News</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="movies">Movies</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="music">Music</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="lithuania">Lithuania</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="uk">UK</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="usa">USA</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="anime">Anime</button>
+              <button type="button" class="gh-preset-chip preset-chip" data-q="documentary">Documentaries</button>
+            </div>
+          </div>
+
+          <div class="tool-card mt-10" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(249, 115, 22, 0.08)); border-color: rgba(239, 68, 68, 0.35);">
+            <div class="label-with-action">
+              <div>
+                <h3 style="margin-bottom:4px; color:#fff;">▶️ YouTube 24/7 Live TV Stream Detector</h3>
+                <p style="margin:0; font-size:0.82rem; color:#cbd5e1;">Probe & resolve official 24/7 live television feeds directly from YouTube (Sky News, DW News, NASA TV, Bloomberg, France 24, etc.). Generated streams are routed through the auto-renewing StreamForge proxy so playback never expires!</p>
+              </div>
+            </div>
+            <div class="input-with-btn mt-10">
+              <input type="text" id="ytLiveSearchQuery" placeholder="Search YouTube 24/7 Live channels (e.g. Sky News, DW News, NASA TV, Bloomberg, France 24, Euronews)..." />
+              <button type="button" class="btn btn-primary" id="btnRunYtLiveSearch" style="background: linear-gradient(135deg, #ef4444, #dc2626); border-color: #ef4444;">▶️ Detect YouTube Live</button>
+            </div>
+            <div class="preset-urls mt-8">
+              <span>Quick Channels:</span>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="Sky News">Sky News</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="DW News">DW News</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="NASA TV">NASA TV</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="Bloomberg TV">Bloomberg TV</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="France 24 English">France 24</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="Al Jazeera English">Al Jazeera</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="Euronews English">Euronews</button>
+              <button type="button" class="yt-preset-chip preset-chip" data-q="Red Bull TV">Red Bull TV</button>
+            </div>
+          </div>
+
+          <!-- Discovered GitHub Repositories & Playlists Grid -->
+          <div class="github-results-wrap mt-10" id="githubRepoResultsWrap">
+            <div class="empty-state" style="padding:28px;">
+              <p>Type a topic above or click a topic chip to discover open IPTV repositories on GitHub and live web stream feeds.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB C: CONNECTED PROVIDERS & MULTI-SOURCE PLATFORMS -->
+        <div id="sourceTabProviders" class="hidden">
+          <div class="tool-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)); border-color: rgba(99, 102, 241, 0.35);">
+            <div class="label-with-action" style="flex-wrap:wrap; gap:10px;">
+              <div>
+                <h3 style="margin-bottom:4px; color:#fff;">🌐 Multi-Source FAST & Public Stream Aggregator</h3>
+                <p style="margin:0; font-size:0.82rem; color:#cbd5e1;">Aggregating 25,000+ legal, public & FAST channels across Pluto TV, Samsung TV Plus, Plex Live, The Roku Channel, Tubi, Free-TV, and custom M3U playlists.</p>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnSyncAllProviders">🔄 Sync All Sources</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnToggleAddProvider">＋ Add Custom M3U Source</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Custom M3U Source Form (collapsible) -->
+          <div class="tool-card hidden mt-10" id="addCustomProviderBox" style="border-color: rgba(16, 185, 129, 0.4);">
+            <h3 style="color:#6ee7b7; margin-bottom:8px;">＋ Add Custom M3U / M3U8 Stream Provider</h3>
+            <p style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;">Add any legal public M3U playlist URL (e.g. specialized FAST lists, custom CDN endpoints, GitHub community playlists). Streams will be indexed instantly into the search engine.</p>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Provider Name *</label>
+                <input type="text" id="newProvName" placeholder="e.g., My Custom IPTV, Sports TV" />
+              </div>
+              <div class="form-group">
+                <label>M3U / M3U8 Playlist URL *</label>
+                <input type="text" id="newProvUrl" placeholder="https://example.com/playlist.m3u" />
+              </div>
+              <div class="form-group">
+                <label>Badge Label / Emoji</label>
+                <input type="text" id="newProvBadge" placeholder="e.g., ⚡ Custom, 🏈 SportsNet" />
+              </div>
+            </div>
+            <div class="btn-row mt-8" style="justify-content:flex-end;">
+              <button type="button" class="btn btn-ghost btn-sm" id="btnCancelAddProvider">Cancel</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btnCommitAddProvider">Save & Index Source</button>
+            </div>
+          </div>
+
+          <!-- Connected Providers Table / Grid -->
+          <div class="upload-check-table-wrap mt-10" id="providersListWrap">
+            <div class="empty-state" style="padding:24px;">
+              <p>Loading connected stream providers...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="sourceFinderModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 🛡️ Non-Working Channels Center & 2-Hour Fallback Guard Modal -->
+  <div class="modal-backdrop hidden" id="brokenChannelsModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>🛡️ 2-Hour Fallback Guard & Non-Working Channels Center</h2>
+          <p class="modal-subtitle">Automatically checks all channels every 2 hours (12x a day). If a channel's stream expires or drops offline, it instantly fails over to one of its 3-4 backup sources.</p>
+        </div>
+        <button class="modal-close" data-close="brokenChannelsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Scheduler Status & Controls Bar -->
+        <div class="scheduler-bar">
+          <div class="sched-info">
+            <div class="sched-title-row">
+              <span class="pulse-dot"></span>
+              <strong>Automated Fallback Guard</strong>
+              <span class="badge badge-indigo" id="schedFrequencyBadge">12x / Day (Every 2h)</span>
+              <span class="badge badge-success" id="schedFailoversBadge">0 Auto-Failovers</span>
+            </div>
+            <div class="sched-meta" id="schedTimestampsText">Last check: Never · Next check: Scheduled</div>
+          </div>
+          <div class="sched-actions">
+            <select id="schedFrequencySelect" class="select-dark" title="Check Frequency">
+              <option value="12">Every 2 Hours (12x / Day - Fallback Guard)</option>
+              <option value="6">Every 4 Hours (6x a Day)</option>
+              <option value="4">Every 6 Hours (4x a Day)</option>
+              <option value="3">Every 8 Hours (3x a Day)</option>
+              <option value="1">1x a Day (Every 24 hours)</option>
+            </select>
+            <button class="btn btn-source-finder" id="btnToggleBrokenBulkFinder" title="Find sources by entering or loading up to 100 channel names">
+              🔎 Find Source by Name List (≤100)
+            </button>
+            <button class="btn btn-primary" id="btnBrokenSyncTelevizo" title="Extract and renew live streams from televizo.live for all matching channels">
+              📺 Sync Televizo Streams
+            </button>
+            <button class="btn btn-secondary" id="btnAutoPopulateAllBackups" title="Auto-find 3-4 backup sources for all channels">
+              ⚡ Auto-Populate Backups (3-4 Sources)
+            </button>
+            <button class="btn btn-secondary" id="btnRunScheduledCheckNow">🛡️ Run Fallback Guard Now</button>
+            <button class="btn btn-magic" id="btnAutoHealAllBroken" title="Automatically search & replace dead links with working sources">
+              🩹 Auto-Heal Broken (≤100)
+            </button>
+            <button class="btn btn-danger" id="btnDeleteAllBroken">🗑️ Delete All Non-Working</button>
+          </div>
+        </div>
+
+        <!-- Embedded Bulk Find Source by Channel Names List (≤100) inside Non-Working Channels Center -->
+        <div class="tool-card hidden" id="brokenBulkFinderBox">
+          <div class="label-with-action">
+            <h3>🔎 Find Replacement Sources for Non-Working Channels (Up to 100 Channel Names)</h3>
+            <span class="badge badge-indigo" id="brokenBulkLineCount">0 / 100 channels</span>
+          </div>
+          <p>Pre-filled with your non-working channel names (up to 100), or type/paste any list of up to 100 channel names below to find working `.m3u8` sources:</p>
+          <textarea id="brokenBulkNamesTextarea" rows="5" class="mt-8" placeholder="Enter up to 100 channel names (1 per line)..."></textarea>
+          <div class="btn-row mt-8" style="justify-content:space-between;">
+            <div class="btn-row">
+              <button type="button" class="btn btn-source-finder" id="btnRunBrokenBulkSearch">🔎 Search & Probe Sources (≤100)</button>
+              <button type="button" class="btn btn-secondary" id="btnReloadBrokenNamesList">🔄 Load Non-Working Names (≤100)</button>
+            </div>
+            <div class="btn-row">
+              <button type="button" class="btn btn-primary hidden" id="btnApplyBrokenBulkReplacements">🔄 Replace Existing Broken Channels</button>
+              <button type="button" class="btn btn-secondary hidden" id="btnAddBrokenBulkAsNew">＋ Add Found as New Channels</button>
+            </div>
+          </div>
+          <div class="upload-check-table-wrap mt-8 hidden" id="brokenBulkResultsWrap"></div>
+        </div>
+
+        <!-- Broken Channels Table -->
+        <div id="brokenChannelsListWrap" class="broken-list-wrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="brokenChannelsModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 🔐 IPTV Xtream Codes Login Bulk Importer Modal -->
+  <div class="modal-backdrop hidden" id="xtreamModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>🔐 Bulk Import from IPTV Xtream Codes Login</h2>
+          <p class="modal-subtitle">Connect to any Xtream Codes server, detect duplicates in both your current playlist & the new imported list, check channel health, and import.</p>
+        </div>
+        <button class="modal-close" data-close="xtreamModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Xtream Server / Portal URL *</label>
+            <input type="text" id="xtreamServerUrl" placeholder="http://line.provider.com:8080 (or 'demo')" />
+          </div>
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="xtreamUsername" placeholder="Username" />
+          </div>
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" id="xtreamPassword" placeholder="Password" />
+          </div>
+        </div>
+
+        <div class="btn-row" style="justify-content:space-between;">
+          <div class="btn-row">
+            <button type="button" class="btn btn-xtream" id="btnConnectXtream">🔌 Login & Fetch Xtream Channels</button>
+            <button type="button" class="btn btn-secondary" id="btnLoadDemoXtream">🧪 Load Demo Xtream Server (Test Flow)</button>
+          </div>
+          <button type="button" class="btn btn-secondary hidden" id="btnProbeXtreamChannels">🩺 Check Each Channel Status</button>
+        </div>
+
+        <!-- Xtream Account & Duplicate Summary Panel -->
+        <div class="xtream-Analysis-panel hidden" id="xtreamAnalysisPanel">
+          <div class="xtream-stats-row">
+            <span class="badge badge-emerald" id="xtreamAccountBadge">Account: Active</span>
+            <span class="badge badge-indigo" id="xtreamTotalBadge">0 Total Fetched</span>
+            <span class="badge badge-cyan" id="xtreamUniqueBadge">0 Unique New</span>
+            <span class="badge badge-amber" id="xtreamDupPlaylistBadge">0 Duplicates in Current Playlist</span>
+            <span class="badge badge-violet" id="xtreamDupInternalBadge">0 Duplicates in Imported List</span>
+          </div>
+
+          <div class="preview-header mt-10">
+            <strong>Filter Categories to Import</strong>
+            <div>
+              <button type="button" class="btn-link" id="btnXtreamSelectAllCats">Select All</button> ·
+              <button type="button" class="btn-link" id="btnXtreamClearCats">Clear</button>
+            </div>
+          </div>
+          <div class="import-cats-grid" id="xtreamCategoriesGrid"></div>
+
+          <!-- Per-Channel Preview Table with Duplicate & Health Status -->
+          <div class="upload-check-table-wrap mt-10" id="xtreamPreviewTableWrap"></div>
+        </div>
+
+        <div class="checkbox-row mt-8">
+          <label class="checkbox-label">
+            <input type="checkbox" id="xtreamSkipPlaylistDups" checked />
+            <span>🛡️ Skip duplicates already in current playlist</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="xtreamSkipInternalDups" checked />
+            <span>🛡️ Skip duplicates inside new imported list</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="xtreamDedupByName" checked />
+            <span>🔍 Match duplicates by Channel Name as well as URL</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="xtreamCheckOnUpload" checked />
+            <span>🩺 Check each channel stream on upload</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="xtreamOnlyWorking" />
+            <span>✅ Only import working (Online) channels</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="xtreamModal">Cancel</button>
+        <button class="btn btn-xtream" id="btnCommitXtreamImport">📥 Import Xtream Channels</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Bulk .m3u8 Channel Implant Modal -->
+  <div class="modal-backdrop hidden" id="bulkImplantModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>⚡ Bulk `.m3u8` Channel Implant (with Live Channel Check)</h2>
+          <p class="modal-subtitle">Paste raw `.m3u8` links, `Channel Name | URL | Category`, or `#EXTINF` blocks. Verify every stream and detect duplicates before or during implant.</p>
+        </div>
+        <button class="modal-close" data-close="bulkImplantModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Target Category for Implanted Channels</label>
+            <input type="text" id="implantCategory" list="categoryDatalist" value="Live Implant" placeholder="e.g., Sports, Movies, UK TV" />
+          </div>
+          <div class="form-group">
+            <label>Upload Verification & Duplicate Options</label>
+            <div class="checkbox-stack">
+              <label class="checkbox-label">
+                <input type="checkbox" id="implantCheckStreams" checked />
+                <span>🩺 Check each channel stream on bulk upload</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="implantOnlyWorking" />
+                <span>✅ Only implant working (Online) channels</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="implantAutoLogos" checked />
+                <span>✨ Automatically find & assign channel logos</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="implantDeduplicate" checked />
+                <span>🛡️ Skip duplicates (in current playlist & inside uploaded batch)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-with-action">
+            <label>Paste `.m3u8` Streams (1 per line or `#EXTINF` format)</label>
+            <div style="display:flex; gap:12px;">
+              <button type="button" class="btn-link" id="btnLoadSampleImplant">Load Sample .m3u8 Batch</button>
+              <button type="button" class="btn-link" id="btnVerifyImplantPreview">🩺 Pre-Check & Preview Channels Now</button>
+            </div>
+          </div>
+          <textarea id="implantTextarea" rows="7" placeholder="Supported formats (mix & match!):
+BBC News HD | https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/t=3840/v=pv14/b=5070016/main.m3u8 | News
+Sky News, https://skynews2-plutolive-vo.akamaized.net/cdnhls/2112/master.m3u8, News
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"></textarea>
+        </div>
+
+        <div class="upload-check-table-wrap hidden" id="implantCheckResultsWrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="bulkImplantModal">Cancel</button>
+        <button class="btn btn-implant" id="btnCommitImplant">⚡ Check & Implant Channels Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Auto-Import from M3U Modal -->
+  <div class="modal-backdrop hidden" id="importM3uModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>📥 Auto-Import from M3U / M3U8 Playlist</h2>
+          <p class="modal-subtitle">Import channels from a remote M3U URL, local `.m3u`/`.m3u8` file, or pasted `#EXTM3U` playlist with duplicate & stream checking.</p>
+        </div>
+        <button class="modal-close" data-close="importM3uModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs-bar">
+          <button class="tab-btn active" data-tab="url">🌐 Remote M3U URL</button>
+          <button class="tab-btn" data-tab="file">📂 Upload .m3u / .m3u8 File</button>
+          <button class="tab-btn" data-tab="raw">📋 Paste Raw M3U</button>
+        </div>
+
+        <div class="tab-pane" id="importTabUrl">
+          <div class="form-group">
+            <label>Remote M3U / M3U8 Playlist URL</label>
+            <div class="input-with-btn">
+              <input type="text" id="importRemoteUrl" placeholder="https://iptv-org.github.io/iptv/categories/news.m3u" />
+              <button type="button" class="btn btn-secondary" id="btnFetchRemotePreview">Fetch & Analyze</button>
+            </div>
+            <div class="preset-urls">
+              <span>Quick Public Presets:</span>
+              <button type="button" class="preset-chip" data-url="https://iptv-org.github.io/iptv/categories/sports.m3u">IPTV-Org Sports</button>
+              <button type="button" class="preset-chip" data-url="https://iptv-org.github.io/iptv/categories/news.m3u">IPTV-Org News</button>
+              <button type="button" class="preset-chip" data-url="https://iptv-org.github.io/iptv/categories/movies.m3u">IPTV-Org Movies</button>
+              <button type="button" class="preset-chip" data-url="https://iptv-org.github.io/iptv/categories/music.m3u">IPTV-Org Music</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane hidden" id="importTabFile">
+          <label class="file-dropzone" id="m3uDropzone">
+            <input type="file" id="importFileInput" accept=".m3u,.m3u8,.txt" hidden />
+            <div class="dropzone-title">📂 Click to choose or drag & drop `.m3u` / `.m3u8` file</div>
+            <div class="dropzone-sub" id="selectedFileName">Automatically checks duplicates & stream health</div>
+          </label>
+        </div>
+
+        <div class="tab-pane hidden" id="importTabRaw">
+          <div class="form-group">
+            <label>Raw `#EXTM3U` Content</label>
+            <textarea id="importRawContent" rows="5" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-id=&quot;...&quot; tvg-logo=&quot;...&quot; group-title=&quot;...&quot;,Channel Name&#10;https://..."></textarea>
+            <button type="button" class="btn btn-secondary mt-8" id="btnParseRawPreview">Analyze Content</button>
+          </div>
+        </div>
+
+        <div class="import-preview-box hidden" id="importPreviewBox">
+          <div class="preview-header">
+            <strong id="importPreviewSummary">Found 0 channels</strong>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button type="button" class="btn-sm btn-glass" id="btnProbeM3uPreview">🩺 Check Streams in Preview</button>
+              <button type="button" class="btn-link" id="btnSelectAllImportCats">Select All</button>
+              <button type="button" class="btn-link" id="btnDeselectAllImportCats">Clear</button>
+            </div>
+          </div>
+          <div class="xtream-stats-row" id="importDupBadges" style="margin-bottom:8px;"></div>
+          <div class="import-cats-grid" id="importCategoriesGrid"></div>
+          <div class="upload-check-table-wrap mt-8 hidden" id="importChannelCheckWrap"></div>
+        </div>
+
+        <div class="form-grid-2 mt-10">
+          <div class="form-group">
+            <label>Import Destination</label>
+            <select id="importDestinationMode" class="select-dark">
+              <option value="merge">Merge into current playlist</option>
+              <option value="new">Create as a brand new playlist</option>
+            </select>
+          </div>
+          <div class="form-group hidden" id="newPlaylistNameGroup">
+            <label>New Playlist Name</label>
+            <input type="text" id="importNewPlaylistName" placeholder="e.g., Imported Sports & Entertainment" />
+          </div>
+        </div>
+
+        <div class="checkbox-row mt-8">
+          <label class="checkbox-label">
+            <input type="checkbox" id="importCheckOnUpload" checked />
+            <span>🩺 Check each channel stream on upload</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="importOnlyWorking" />
+            <span>✅ Only import working (Online) channels</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="importAutoLogos" />
+            <span>✨ Auto-find missing logos</span>
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="importDeduplicate" checked />
+            <span>🛡️ Skip duplicates (current playlist & new list)</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="importM3uModal">Cancel</button>
+        <button class="btn btn-primary" id="btnExecuteImport">📥 Import Selected Channels</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 🌐 Public Accessible URL & Tunnel Manager Modal -->
+  <div class="modal-backdrop hidden" id="publicUrlModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <h2>🌐 Public Accessible M3U URL & Network Endpoints</h2>
+          <p class="modal-subtitle">Access your custom IPTV playlists from anywhere in the world or on any Smart TV on your Wi-Fi.</p>
+        </div>
+        <button class="modal-close" data-close="publicUrlModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tool-card">
+          <div class="label-with-action">
+            <h3>1. 🌍 Public Internet HTTPS URL (Zero-Config SSH Tunnel)</h3>
+            <span class="badge badge-emerald" id="modalTunnelStatusBadge">Online</span>
+          </div>
+          <p>Automatically creates a public HTTPS link (`localhost.run` / `pinggy.io`) so you can load your playlist outside your home network.</p>
+          <div class="input-with-btn mt-10">
+            <input type="text" id="modalPublicPlaylistUrl" readonly placeholder="Starting public tunnel..." />
+            <button class="btn btn-primary" id="btnModalCopyPublicUrl">📋 Copy Public M3U</button>
+          </div>
+          <div class="btn-row mt-10">
+            <button class="btn btn-secondary" id="btnRestartTunnelLhr">🔄 Reconnect (localhost.run)</button>
+            <button class="btn btn-secondary" id="btnRestartTunnelPinggy">🔄 Switch to Pinggy.io Tunnel</button>
+            <button class="btn btn-ghost" id="btnStopTunnel">Stop Tunnel</button>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <h3>2. 🏠 Home Wi-Fi / LAN URL (For Smart TVs, FireStick, Apple TV, VLC)</h3>
+          <p>Direct high-speed local network link for devices connected to your router/Wi-Fi:</p>
+          <div class="input-with-btn mt-10">
+            <input type="text" id="modalLanPlaylistUrl" readonly />
+            <button class="btn btn-secondary" id="btnModalCopyLanUrl">📋 Copy LAN M3U</button>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <h3>3. 🔗 Custom Domain / Reverse Proxy / Public IP Override (Optional)</h3>
+          <p>If you host this script on a VPS or port-forward your router, set your custom public domain or IP here:</p>
+          <div class="input-with-btn mt-10">
+            <input type="text" id="customBaseUrlInput" placeholder="e.g., https://iptv.mydomain.com or http://203.0.113.50:8765" />
+            <button class="btn btn-secondary" id="btnSaveCustomBaseUrl">Save Domain</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="publicUrlModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Playlist Create / Rename / Settings Modal -->
+  <div class="modal-backdrop hidden" id="playlistModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="playlistModalTitle">Playlist Settings</h2>
+        <button class="modal-close" data-close="playlistModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="plModalMode" value="create" />
+        <div class="form-group">
+          <label>Playlist Name *</label>
+          <input type="text" id="plNameInput" placeholder="e.g., My Ultimate 4K IPTV" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input type="text" id="plDescInput" placeholder="Optional notes about this playlist" />
+        </div>
+        <div class="form-group">
+          <label>EPG XMLTV URL (`x-tvg-url` / `url-tvg`)</label>
+          <input type="text" id="plEpgInput" placeholder="https://iptv-org.github.io/epg/guides/en.xml" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="playlistModal">Cancel</button>
+        <button class="btn btn-primary" id="btnSavePlaylistMeta">Save Playlist</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Category Manager Modal -->
+  <div class="modal-backdrop hidden" id="categoryModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <h2>📁 Category & Group Manager</h2>
+          <p class="modal-subtitle">Rename categories, unassign channels from a category, or delete an entire category and its channels.</p>
+        </div>
+        <button class="modal-close" data-close="categoryModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="category-manager-list" id="categoryManagerList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="categoryModal">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Smart Tools Modal -->
+  <div class="modal-backdrop hidden" id="smartToolsModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <h2>🧰 Smart Playlist Cleanup, Deduplicator & Auto-Number</h2>
+          <p class="modal-subtitle">Automate tedious M3U maintenance in one click.</p>
+        </div>
+        <button class="modal-close" data-close="smartToolsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tool-card">
+          <h3>1. Bulk Channel Name Cleaner & Find/Replace</h3>
+          <p>Strip provider clutter (`[FHD]`, `US:`, `HEVC`, `| VIP |`) or replace text across all channels.</p>
+          <div class="form-grid-2 mt-8">
+            <input type="text" id="cleanFindText" placeholder="Find text (optional, e.g. VIP)" />
+            <input type="text" id="cleanReplaceText" placeholder="Replace with (optional)" />
+          </div>
+          <div class="checkbox-row mt-8">
+            <label class="checkbox-label"><input type="checkbox" id="cleanBrackets" checked /> Strip `[brackets]` & `(parens)`</label>
+            <label class="checkbox-label"><input type="checkbox" id="cleanCountry" checked /> Strip `US:` / `UK |` prefixes</label>
+            <label class="checkbox-label"><input type="checkbox" id="cleanQuality" checked /> Strip `FHD/4K/HEVC/50FPS` tags</label>
+          </div>
+          <button class="btn btn-secondary mt-10" id="btnRunNameCleaner">✨ Clean Channel Names</button>
+        </div>
+
+        <div class="tool-card">
+          <h3>2. Duplicate Channel Remover</h3>
+          <p>Scan playlist and remove duplicate channels sharing the same stream URL or normalized name.</p>
+          <div class="btn-row mt-8">
+            <button class="btn btn-secondary" id="btnDedupByUrl">Remove Duplicate URLs</button>
+            <button class="btn btn-secondary" id="btnDedupByName">Remove Duplicate Names</button>
+          </div>
+        </div>
+
+        <div class="tool-card">
+          <h3>3. Sequential Channel Numbering (`tvg-chno`) & Sorting</h3>
+          <p>Sort playlist order and assign sequential channel numbers starting from your preferred number.</p>
+          <div class="form-grid-3 mt-8">
+            <div>
+              <label>Start Number</label>
+              <input type="number" id="autoNumStart" value="1" min="1" />
+            </div>
+            <div>
+              <label>Order Channels By</label>
+              <select id="autoNumSort" class="select-dark">
+                <option value="current">Keep Current Order</option>
+                <option value="category">Category A→Z, then Name A→Z</option>
+                <option value="name">Channel Name A→Z</option>
+              </select>
+            </div>
+            <div class="flex-end">
+              <button class="btn btn-primary" id="btnRunAutoNumber">🔢 Sort & Number Channels</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Raw #EXTM3U Code Preview Modal -->
+  <div class="modal-backdrop hidden" id="rawM3uModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h2>{ } Raw `#EXTM3U` Playlist Code</h2>
+        <button class="modal-close" data-close="rawM3uModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="rawM3uTextarea" rows="16" readonly class="code-textarea"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="rawM3uModal">Close</button>
+        <button class="btn btn-primary" id="btnCopyRawM3u">📋 Copy Raw M3U</button>
+      </div>
+    </div>
+  <!-- 12. ☁️ 24/7 Always-On Cloud Hosting Modal -->
+  <div class="modal-backdrop hidden" id="cloudHostModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2>☁️ 24/7 Always-On Cloud Hosting (PC Turned Off)</h2>
+          <p class="modal-subtitle">Access your IPTV Studio and playlists anywhere in the world 24/7 from your phone, TV, or PC without keeping your computer on.</p>
+        </div>
+        <button class="modal-close" data-close="cloudHostModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="tool-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.1)); border-color: rgba(99, 102, 241, 0.4);">
+          <div class="label-with-action">
+            <div>
+              <h3 style="color:#fff; margin-bottom:4px;">📦 1-Click Cloud Deployment Package</h3>
+              <p style="margin:0; font-size:0.83rem;">Pre-configured with <code>Dockerfile</code>, <code>render.yaml</code>, <code>Procfile</code>, <code>fly.toml</code>, and auto-WAL database mode.</p>
+            </div>
+            <a href="/api/download-cloud-bundle" class="btn btn-primary" download="streamforge-cloud-deploy.zip" style="text-decoration:none;">
+              ⬇️ Download Cloud Bundle (.zip)
+            </a>
+          </div>
+        </div>
+
+        <div class="cloud-host-grid">
+          <!-- Render.com -->
+          <div class="cloud-card">
+            <div>
+              <div class="cloud-card-header">
+                <span class="cloud-card-title">🟣 Render.com</span>
+                <span class="badge badge-emerald">100% Free · Recommended</span>
+              </div>
+              <p>Free Python Web Service with automatic SSL (<code>https://your-studio.onrender.com</code>). Zero credit card needed.</p>
+              <ol>
+                <li>Create a free repo at <a href="https://github.com/new" target="_blank" style="color:#a855f7;">github.com/new</a> and upload the zip files.</li>
+                <li>Go to <a href="https://render.com" target="_blank" style="color:#a855f7;">render.com</a> → <strong>New +</strong> → <strong>Web Service</strong>.</li>
+                <li>Connect your repo. Render auto-reads <code>render.yaml</code> & launches your studio in ~60 seconds!</li>
+              </ol>
+            </div>
+            <a href="https://render.com" target="_blank" class="btn btn-secondary" style="text-align:center; text-decoration:none;">Deploy on Render</a>
+          </div>
+
+          <!-- Koyeb -->
+          <div class="cloud-card">
+            <div>
+              <div class="cloud-card-header">
+                <span class="cloud-card-title">🔵 Koyeb</span>
+                <span class="badge badge-indigo">Global Edge Free Tier</span>
+              </div>
+              <p>Continuous uptime nano containers with ultra-fast CDN routing worldwide.</p>
+              <ol>
+                <li>Sign up at <a href="https://koyeb.com" target="_blank" style="color:#60a5fa;">koyeb.com</a>.</li>
+                <li>Click <strong>Create App</strong> → Select your GitHub repo.</li>
+                <li>Koyeb auto-detects the <code>Dockerfile</code> and deploys at <code>https://&lt;app&gt;.koyeb.app</code>!</li>
+              </ol>
+            </div>
+            <a href="https://koyeb.com" target="_blank" class="btn btn-secondary" style="text-align:center; text-decoration:none;">Deploy on Koyeb</a>
+          </div>
+
+          <!-- Hugging Face Spaces -->
+          <div class="cloud-card">
+            <div>
+              <div class="cloud-card-header">
+                <span class="cloud-card-title">🤗 Hugging Face Spaces</span>
+                <span class="badge badge-amber">Instant Docker · No Credit Card</span>
+              </div>
+              <p>Free 2-CPU 16GB RAM cloud container that runs 24/7 without credit card.</p>
+              <ol>
+                <li>Visit <a href="https://huggingface.co/spaces" target="_blank" style="color:#f59e0b;">huggingface.co/spaces</a> → <strong>Create New Space</strong>.</li>
+                <li>Select <strong>Docker</strong> SDK (Blank template).</li>
+                <li>Upload the files or push via Git. Hugging Face builds and runs the container automatically!</li>
+              </ol>
+            </div>
+            <a href="https://huggingface.co/spaces" target="_blank" class="btn btn-secondary" style="text-align:center; text-decoration:none;">Deploy on HF Spaces</a>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close="cloudHostModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. 🐙 GitHub Playlist Channels Preview Modal -->
+  <div class="modal-backdrop hidden" id="githubPreviewModal">
+    <div class="modal modal-xl">
+      <div class="modal-header">
+        <div>
+          <h2 id="githubPreviewModalTitle">🐙 GitHub Playlist Inspection</h2>
+          <p class="modal-subtitle" id="githubPreviewModalSubtitle">Inspect channels inside this repository playlist, probe streams, and import into your current playlist or connect as a provider.</p>
+        </div>
+        <button class="modal-close" data-close="githubPreviewModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="label-with-action" style="gap:10px; flex-wrap:wrap;">
+          <input type="text" id="githubPreviewFilterInput" placeholder="Filter channels inside this playlist..." style="max-width:320px;" />
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnProbeGithubPreviewChannels">🩺 Probe Preview Streams</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnImportAllGithubPreview">📥 Import Channels to Playlist</button>
+          </div>
+        </div>
+        <div class="upload-check-table-wrap mt-10" id="githubPreviewChannelsWrap">
+          <div class="empty-state" style="padding:20px;"><p>Loading playlist channels...</p></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close="githubPreviewModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
