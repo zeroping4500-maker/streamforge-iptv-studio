@@ -171,17 +171,18 @@ def stop_public_tunnel():
 
 def get_network_info() -> dict:
     lan_ip = get_lan_ip()
+    render_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL")
     with TUNNEL_LOCK:
-        pub = TUNNEL_STATE["custom_base_url"] or TUNNEL_STATE["public_url"]
+        pub = render_url or TUNNEL_STATE["custom_base_url"] or TUNNEL_STATE["public_url"]
         return {
             "port": SERVER_PORT,
             "localhost_url": f"http://localhost:{SERVER_PORT}",
             "lan_url": f"http://{lan_ip}:{SERVER_PORT}",
             "public_url": pub.rstrip("/") if pub else "",
-            "tunnel_status": TUNNEL_STATE["status"],
-            "tunnel_provider": TUNNEL_STATE["provider"],
+            "tunnel_status": "online" if render_url else TUNNEL_STATE["status"],
+            "tunnel_provider": "Render Cloud" if render_url else TUNNEL_STATE["provider"],
             "custom_base_url": TUNNEL_STATE["custom_base_url"],
-            "tunnel_error": TUNNEL_STATE["error"],
+            "tunnel_error": "" if render_url else TUNNEL_STATE["error"],
         }
 
 
@@ -1890,9 +1891,32 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
         with sync_playwright() as p:
             browser = p.chromium.launch(
                 headless=True,
-                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--no-zygote",
+                    "--single-process",
+                    "--disable-extensions",
+                    "--disable-software-rasterizer",
+                    "--disable-background-networking",
+                    "--mute-audio",
+                ]
             )
             page = browser.new_page()
+
+            def _filter_route(route):
+                u = route.request.url.lower()
+                if ".m3u8" in u:
+                    route.continue_()
+                    return
+                if route.request.resource_type in ("image", "font", "stylesheet", "media"):
+                    route.abort()
+                    return
+                route.continue_()
+
+            page.route("**/*", _filter_route)
 
             def on_req(req):
                 u = req.url
@@ -3731,14 +3755,19 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         pass
 
     def send_json(self, data, status=200):
-        raw = json.dumps(data).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(raw)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(raw)
+        try:
+            raw = json.dumps(data).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(raw)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception:
+            pass
 
     def read_json(self) -> dict:
         length = int(self.headers.get("Content-Length", "0") or "0")
@@ -3794,7 +3823,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 req_headers["Range"] = range_hdr
 
             req = urllib.request.Request(target_url, headers=req_headers)
-            with urllib.request.urlopen(req, timeout=12.0) as resp:
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
                 status_code = resp.getcode()
                 content_type = resp.headers.get("Content-Type", "")
                 body = resp.read()
@@ -3849,20 +3878,33 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     self.send_header("Cache-Control", "public, max-age=3600")
                     self.end_headers()
                     self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            return
         except urllib.error.HTTPError as e:
-            self.send_json(
-                {"error": f"Remote stream server returned HTTP {e.code}: {e.reason}", "status": e.code},
-                status=e.code,
-            )
+            try:
+                self.send_json(
+                    {"error": f"Remote stream server returned HTTP {e.code}: {e.reason}", "status": e.code},
+                    status=e.code,
+                )
+            except Exception:
+                pass
         except Exception as e:
-            self.send_json({"error": f"Stream proxy error: {e}", "status": 502}, status=502)
+            try:
+                self.send_json({"error": f"Stream proxy error: {e}", "status": 502}, status=502)
+            except Exception:
+                pass
 
     def do_GET(self):
         try:
             self._handle_get()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
         except Exception as e:
             traceback.print_exc()
-            self.send_json({"error": f"Server error: {e}"}, 500)
+            try:
+                self.send_json({"error": f"Server error: {e}"}, 500)
+            except Exception:
+                pass
 
     def _handle_get(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -3985,19 +4027,26 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/scheduler/status":
-            with get_db() as conn:
-                logs = conn.execute(
-                    "SELECT * FROM health_logs ORDER BY ran_at DESC LIMIT 10"
-                ).fetchall()
-                broken_rows = conn.execute(
-                    """
-                    SELECT c.*, p.name AS playlist_name
-                    FROM channels c
-                    JOIN playlists p ON p.id = c.playlist_id
-                    WHERE c.status IN ('offline', 'warning')
-                    ORDER BY c.last_checked_at DESC
-                    """
-                ).fetchall()
+            logs = []
+            broken_rows = []
+            try:
+                with get_db() as conn:
+                    logs = conn.execute(
+                        "SELECT * FROM health_logs ORDER BY ran_at DESC LIMIT 10"
+                    ).fetchall()
+                    broken_rows = conn.execute(
+                        """
+                        SELECT c.*, p.name AS playlist_name
+                        FROM channels c
+                        JOIN playlists p ON p.id = c.playlist_id
+                        WHERE c.status IN ('offline', 'warning')
+                        ORDER BY c.last_checked_at DESC
+                        LIMIT 100
+                        """
+                    ).fetchall()
+            except Exception:
+                pass
+
             with SCHEDULER_LOCK:
                 sched_copy = dict(SCHEDULER_STATE)
             with TELEVIZO_RENEW_LOCK:
@@ -4162,9 +4211,14 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         try:
             self._handle_post()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
         except Exception as e:
             traceback.print_exc()
-            self.send_json({"error": f"Server error: {e}"}, 500)
+            try:
+                self.send_json({"error": f"Server error: {e}"}, 500)
+            except Exception:
+                pass
 
     def _handle_post(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -5217,7 +5271,8 @@ def run_server(port: int = 8765):
     threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
     threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()
     threading.Thread(target=keep_alive_loop, daemon=True).start()
-    threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
+    if not (os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL")):
+        threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
 
     server = ThreadingHTTPServer(("0.0.0.0", port), IPTVStudioHandler)
     print(f"StreamForge IPTV Studio running at http://localhost:{port}")
