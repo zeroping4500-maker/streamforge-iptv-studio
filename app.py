@@ -3406,6 +3406,24 @@ def scheduled_health_monitor_loop():
                 pass
 
 
+def keep_alive_loop():
+    """Background thread that pings external URL every 10 minutes to prevent cloud platform idle sleep (Render / Koyeb)."""
+    while True:
+        time.sleep(600)  # Ping every 10 minutes (Render sleeps after 15 min of inactivity)
+        ext_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL")
+        if ext_url:
+            try:
+                target = ext_url.rstrip("/") + "/api/health"
+                req = urllib.request.Request(
+                    target,
+                    headers={"User-Agent": "StreamForgeKeepAlive/1.0"}
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    pass
+            except Exception:
+                pass
+
+
 # ---------------------------------------------------------------------------
 # IPTV Xtream Codes API Client
 # ---------------------------------------------------------------------------
@@ -3738,6 +3756,17 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
+
+        if path in ("/api/health", "/ping", "/health"):
+            with SCHEDULER_LOCK:
+                sched_ok = SCHEDULER_STATE.get("enabled", True)
+            self.send_json({
+                "status": "healthy",
+                "service": "streamforge-iptv-studio",
+                "scheduler_enabled": sched_ok,
+                "timestamp": int(time.time()),
+            })
+            return
 
         m3u_match = re.match(r"^/m3u/([a-zA-Z0-9_-]+?)(?:\.(m3u8|m3u))?$", path)
         if m3u_match:
@@ -5023,6 +5052,7 @@ def run_server(port: int = 8765):
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
     threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
+    threading.Thread(target=keep_alive_loop, daemon=True).start()
     threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
 
     server = ThreadingHTTPServer(("0.0.0.0", port), IPTVStudioHandler)
