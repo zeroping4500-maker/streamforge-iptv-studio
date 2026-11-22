@@ -1972,13 +1972,22 @@ def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True
         "category": info.get("category", "Televizo Live"),
     }]
 
-def sync_televizo_playlist_streams(playlist_id: str, background: bool = True) -> dict:
+def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = True) -> dict:
     """
-    Scans channels in playlist matching televizo channels or containing tvcdnpotok/cdntvmedia,
-    extracts fresh working .m3u8 tokens using Playwright, and updates channels in DB.
+    Scans channels in playlist (or all playlists if playlist_id is None) matching televizo channels
+    or containing tvcdnpotok/cdntvmedia/cdntvtech, extracts fresh working .m3u8 tokens using Playwright,
+    and updates channels and backup sources in DB.
     """
     with get_db() as conn:
-        rows = conn.execute("SELECT id, name, url, referrer, status FROM channels WHERE playlist_id = ?", (playlist_id,)).fetchall()
+        if playlist_id and playlist_id != "all":
+            rows = conn.execute(
+                "SELECT id, name, url, referrer, status, playlist_id FROM channels WHERE playlist_id = ?",
+                (playlist_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, name, url, referrer, status, playlist_id FROM channels"
+            ).fetchall()
         channels = [dict(r) for r in rows]
 
     catalog = get_televizo_catalog()
@@ -1992,13 +2001,15 @@ def sync_televizo_playlist_streams(playlist_id: str, background: bool = True) ->
             to_refresh.append(ch)
 
     if not to_refresh:
-        return {"ok": True, "refreshed_count": 0, "total_matched": 0, "updated": 0, "message": "No Televizo channels found in this playlist"}
+        return {"ok": True, "refreshed_count": 0, "total_matched": 0, "updated": 0, "message": "No Televizo channels found"}
 
     # Prioritize offline / broken channels first
     to_refresh.sort(key=lambda c: 0 if c.get("status") in ("offline", "warning") else 1)
 
     def _worker(items):
         now = int(time.time())
+        renewed_count = 0
+        touched_playlists = set()
         for ch in items:
             try:
                 res = extract_televizo_stream_sync(ch["name"], timeout_sec=10)
@@ -2013,6 +2024,10 @@ def sync_televizo_playlist_streams(playlist_id: str, background: bool = True) ->
                             """,
                             (fresh_url, now, ch["id"])
                         )
+                        pid = ch.get("playlist_id")
+                        if pid and pid not in touched_playlists:
+                            touch_playlist(conn, pid)
+                            touched_playlists.add(pid)
                     add_or_update_channel_source_db(
                         channel_id=ch["id"],
                         name=ch["name"],
@@ -2022,8 +2037,10 @@ def sync_televizo_playlist_streams(playlist_id: str, background: bool = True) ->
                         priority=1,
                         confidence=100
                     )
-            except Exception:
-                pass
+                    renewed_count += 1
+            except Exception as e:
+                print(f"[Televizo Auto-Renew] Error refreshing {ch.get('name')}: {e}")
+        return renewed_count
 
     if background:
         threading.Thread(target=_worker, args=(to_refresh,), daemon=True).start()
@@ -2035,13 +2052,13 @@ def sync_televizo_playlist_streams(playlist_id: str, background: bool = True) ->
             "message": f"Syncing {len(to_refresh)} Televizo channels in background. Working tokens are updating automatically!"
         }
 
-    # Synchronous mode (first 10 max)
-    _worker(to_refresh[:10])
+    # Synchronous mode (used by the 5-hour scheduled loop)
+    renewed_count = _worker(to_refresh)
     return {
         "ok": True,
-        "refreshed_count": min(len(to_refresh), 10),
+        "refreshed_count": renewed_count,
         "total_matched": len(to_refresh),
-        "playlist_id": playlist_id
+        "playlist_id": playlist_id or "all"
     }
 
 
@@ -3319,7 +3336,39 @@ def run_global_health_check(trigger_type: str = "scheduled_2h_fallback_guard", p
                     backup_promoted = True
                     break
 
-            # 2. If no working backup exists, run live auto-finder (RuTube, YouTube, open CDNs, web)
+            # 2. If it's a Televizo / tvcdnpotok stream, harvest fresh token immediately!
+            if not backup_promoted:
+                u_lower = ch.get("url", "").lower()
+                if "tvcdnpotok" in u_lower or "cdntvmedia" in u_lower or "cdntvtech" in u_lower or find_televizo_channel_info(ch["name"]):
+                    try:
+                        tv_res = extract_televizo_stream_sync(ch["name"], timeout_sec=8)
+                        if tv_res.get("found") and tv_res.get("url"):
+                            fresh_url = tv_res["url"]
+                            with get_db() as conn:
+                                conn.execute(
+                                    """
+                                    UPDATE channels
+                                    SET url = ?, status = 'online', latency_ms = 180, last_checked_at = ?, fail_count = 0, last_error = ''
+                                    WHERE id = ?
+                                    """,
+                                    (fresh_url, now, cid),
+                                )
+                            add_or_update_channel_source_db(
+                                channel_id=cid,
+                                name=ch["name"],
+                                url=fresh_url,
+                                source_name="Televizo Live Extractor",
+                                quality="HD",
+                                priority=1,
+                                confidence=100
+                            )
+                            failovers_count += 1
+                            online_count += 1
+                            backup_promoted = True
+                    except Exception:
+                        pass
+
+            # 3. If no working backup exists, run live auto-finder (RuTube, YouTube, open CDNs, web)
             if not backup_promoted:
                 try:
                     cands = find_stream_sources_by_name(ch["name"], tvg_id=ch.get("tvg_id", ""), limit=3, check_live=True)
@@ -3404,6 +3453,69 @@ def scheduled_health_monitor_loop():
                 run_global_health_check(trigger_type="scheduled_2h_fallback_guard")
             except Exception:
                 pass
+
+
+TELEVIZO_RENEW_LOCK = threading.Lock()
+TELEVIZO_RENEW_STATE = {
+    "enabled": True,
+    "interval_hours": 5,
+    "interval_seconds": 5 * 3600,
+    "last_run_at": 0,
+    "next_run_at": int(time.time()) + 5 * 3600,
+    "is_running": False,
+    "last_renewed_count": 0,
+    "last_total_matched": 0,
+    "total_renewals": 0,
+    "history": [],
+}
+
+
+def scheduled_televizo_renew_loop():
+    """
+    Background daemon that automatically re-extracts fresh live tokens for Televizo streams every 5 hours.
+    Runs 24/7 in the cloud so playlist URLs are perpetually refreshed with active tokens.
+    """
+    time.sleep(45)  # Brief initial grace period after server start
+    while True:
+        with TELEVIZO_RENEW_LOCK:
+            enabled = TELEVIZO_RENEW_STATE["enabled"]
+            next_run = TELEVIZO_RENEW_STATE["next_run_at"]
+            is_running = TELEVIZO_RENEW_STATE["is_running"]
+
+        now = int(time.time())
+        if enabled and not is_running and now >= next_run:
+            print("[Televizo Auto-Renew] Starting 5-hour scheduled token renewal cycle...")
+            try:
+                with TELEVIZO_RENEW_LOCK:
+                    TELEVIZO_RENEW_STATE["is_running"] = True
+
+                res = sync_televizo_playlist_streams(playlist_id=None, background=False)
+                renewed = res.get("refreshed_count", 0)
+                matched = res.get("total_matched", 0)
+
+                with TELEVIZO_RENEW_LOCK:
+                    TELEVIZO_RENEW_STATE["last_run_at"] = now
+                    TELEVIZO_RENEW_STATE["next_run_at"] = now + TELEVIZO_RENEW_STATE["interval_seconds"]
+                    TELEVIZO_RENEW_STATE["last_renewed_count"] = renewed
+                    TELEVIZO_RENEW_STATE["last_total_matched"] = matched
+                    TELEVIZO_RENEW_STATE["total_renewals"] += renewed
+                    TELEVIZO_RENEW_STATE["is_running"] = False
+                    entry = {
+                        "ran_at": now,
+                        "renewed": renewed,
+                        "matched": matched,
+                        "status": "success",
+                    }
+                    TELEVIZO_RENEW_STATE["history"].insert(0, entry)
+                    TELEVIZO_RENEW_STATE["history"] = TELEVIZO_RENEW_STATE["history"][:20]
+                print(f"[Televizo Auto-Renew] Cycle complete: renewed {renewed}/{matched} channels with fresh tokens.")
+            except Exception as e:
+                print(f"[Televizo Auto-Renew] Error during renewal cycle: {e}")
+                with TELEVIZO_RENEW_LOCK:
+                    TELEVIZO_RENEW_STATE["is_running"] = False
+                    TELEVIZO_RENEW_STATE["next_run_at"] = now + 600  # Retry in 10 minutes on error
+
+        time.sleep(15)
 
 
 def keep_alive_loop():
@@ -3866,6 +3978,12 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             self.send_json(get_network_info())
             return
 
+        if path == "/api/televizo/auto-renew/status":
+            with TELEVIZO_RENEW_LOCK:
+                st = dict(TELEVIZO_RENEW_STATE)
+            self.send_json(st)
+            return
+
         if path == "/api/scheduler/status":
             with get_db() as conn:
                 logs = conn.execute(
@@ -3882,8 +4000,11 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 ).fetchall()
             with SCHEDULER_LOCK:
                 sched_copy = dict(SCHEDULER_STATE)
+            with TELEVIZO_RENEW_LOCK:
+                televizo_copy = dict(TELEVIZO_RENEW_STATE)
             self.send_json({
                 "scheduler": sched_copy,
+                "televizo_renew": televizo_copy,
                 "logs": [dict(r) for r in logs],
                 "broken_channels": [dict(r) for r in broken_rows],
             })
@@ -4353,14 +4474,56 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             self.send_json(res)
             return
 
-        # Auto-sync/refresh all Televizo channels in a playlist with fresh tokens
+        # Auto-sync/refresh all Televizo channels in a playlist (or across all playlists) with fresh tokens
         if path == "/api/televizo/sync-playlist":
             pid = body.get("playlist_id")
-            if not pid:
-                self.send_json({"error": "playlist_id required"}, 400)
-                return
             res = sync_televizo_playlist_streams(pid)
             self.send_json(res)
+            return
+
+        # Televizo 5-Hour Auto-Renew Trigger
+        if path == "/api/televizo/auto-renew/trigger":
+            def _async_renew():
+                with TELEVIZO_RENEW_LOCK:
+                    TELEVIZO_RENEW_STATE["is_running"] = True
+                try:
+                    res = sync_televizo_playlist_streams(playlist_id=None, background=False)
+                    now = int(time.time())
+                    with TELEVIZO_RENEW_LOCK:
+                        TELEVIZO_RENEW_STATE["last_run_at"] = now
+                        TELEVIZO_RENEW_STATE["next_run_at"] = now + TELEVIZO_RENEW_STATE["interval_seconds"]
+                        TELEVIZO_RENEW_STATE["last_renewed_count"] = res.get("refreshed_count", 0)
+                        TELEVIZO_RENEW_STATE["last_total_matched"] = res.get("total_matched", 0)
+                        TELEVIZO_RENEW_STATE["total_renewals"] += res.get("refreshed_count", 0)
+                        TELEVIZO_RENEW_STATE["is_running"] = False
+                        entry = {
+                            "ran_at": now,
+                            "renewed": res.get("refreshed_count", 0),
+                            "matched": res.get("total_matched", 0),
+                            "status": "manual_success",
+                        }
+                        TELEVIZO_RENEW_STATE["history"].insert(0, entry)
+                        TELEVIZO_RENEW_STATE["history"] = TELEVIZO_RENEW_STATE["history"][:20]
+                except Exception:
+                    with TELEVIZO_RENEW_LOCK:
+                        TELEVIZO_RENEW_STATE["is_running"] = False
+
+            threading.Thread(target=_async_renew, daemon=True).start()
+            self.send_json({"ok": True, "message": "Televizo token renewal started in background"})
+            return
+
+        # Televizo 5-Hour Auto-Renew Configure
+        if path == "/api/televizo/auto-renew/config":
+            with TELEVIZO_RENEW_LOCK:
+                if "enabled" in body:
+                    TELEVIZO_RENEW_STATE["enabled"] = bool(body["enabled"])
+                if "interval_hours" in body:
+                    hrs = max(1, min(24, int(body["interval_hours"])))
+                    TELEVIZO_RENEW_STATE["interval_hours"] = hrs
+                    TELEVIZO_RENEW_STATE["interval_seconds"] = hrs * 3600
+                    TELEVIZO_RENEW_STATE["next_run_at"] = int(time.time()) + TELEVIZO_RENEW_STATE["interval_seconds"]
+                ret = dict(TELEVIZO_RENEW_STATE)
+            self.send_json({"ok": True, "config": ret})
             return
 
         # Probe arbitrary batch of candidate channels
@@ -5052,6 +5215,7 @@ def run_server(port: int = 8765):
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
     threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
+    threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()
     threading.Thread(target=keep_alive_loop, daemon=True).start()
     threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
 
@@ -5061,4 +5225,11 @@ def run_server(port: int = 8765):
 
 
 if __name__ == "__main__":
+    import sys
+    if "--renew-televizo" in sys.argv:
+        init_db()
+        print("Running manual Televizo token renewal pass across all playlists...")
+        res = sync_televizo_playlist_streams(playlist_id=None, background=False)
+        print(f"Done: renewed {res.get('refreshed_count', 0)} of {res.get('total_matched', 0)} channels.")
+        sys.exit(0)
     run_server(SERVER_PORT)

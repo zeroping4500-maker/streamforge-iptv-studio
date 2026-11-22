@@ -1869,6 +1869,19 @@ async function refreshBrokenChannelsModal() {
     document.getElementById('schedTimestampsText').textContent =
       `Last check: ${formatTimeAgo(sched.last_run_at)} · Next scheduled check: ${formatTimeUntil(sched.next_run_at)}`;
 
+    const tvRenew = data.televizo_renew || {};
+    const tvBadge = document.getElementById('televizoRenewBadge');
+    if (tvBadge) {
+      const tvHrs = tvRenew.interval_hours || 5;
+      tvBadge.textContent = tvRenew.is_running ? '🔄 Televizo: Syncing Now...' : `🔄 Televizo Auto-Renew: Every ${tvHrs}h`;
+    }
+    const tvMeta = document.getElementById('televizoRenewMeta');
+    if (tvMeta) {
+      const nextTxt = formatTimeUntil(tvRenew.next_run_at);
+      const lastRenewed = tvRenew.last_renewed_count || 0;
+      tvMeta.textContent = `Next Televizo Token Refresh: in ${nextTxt} · Last renewed: ${lastRenewed} channels`;
+    }
+
     if (!document.getElementById('brokenBulkNamesTextarea').value.trim() && broken.length > 0) {
       populateBrokenBulkTextarea();
     }
