@@ -1888,7 +1888,10 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+            )
             page = browser.new_page()
 
             def on_req(req):

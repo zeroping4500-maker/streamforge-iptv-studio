@@ -7,20 +7,27 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8080
+    PORT=8080 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 
-# Install runtime utilities
+# Install runtime utilities & Playwright/Node prerequisites
 RUN apt-get update && apt-get install -y --no-install-recommends \
     sqlite3 \
     curl \
+    wget \
+    ca-certificates \
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies & Playwright headless chromium
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    playwright install --with-deps chromium
+RUN mkdir -p /ms-playwright && \
+    pip install --no-cache-dir -r requirements.txt && \
+    playwright install --with-deps chromium && \
+    chmod -R 777 /ms-playwright && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy application source
 COPY . .
