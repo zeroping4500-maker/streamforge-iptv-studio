@@ -1,0 +1,769 @@
+#EXTM3U x-tvg-url="https://iptv-org.github.io/epg/guides/en.xml" url-tvg="https://iptv-org.github.io/epg/guides/en.xml"
+#EXTINF:-1 tvg-id="BalticumTV.lt@SD" tvg-name="Balticum TV" tvg-logo="https://i.imgur.com/35tm57M.png" tvg-chno="1" group-title="LT KANALAI",Balticum TV
+http://stream.mcquack.net/376/index.m3u8
+#EXTINF:-1 tvg-id="BTV.lt" tvg-name="BTV" tvg-logo="https://i.imgur.com/AeplGsP.png" tvg-chno="2" group-title="LT KANALAI",BTV
+https://tvcdnpotok.com/2021/index.m3u8?wmsAuthSign=49811ed7ad85725315e88c42882d0bd2-1795368054-002i71i16i87
+#EXTINF:-1 tvg-id="CurrentTimeTV.cz@SD" tvg-name="Current Time / Настоящее Время" tvg-logo="https://i.imgur.com/hKo8ApU.png" tvg-chno="3" group-title="LT KANALAI",Current Time / Настоящее Время
+https://rfe-ingest.akamaized.net/hls/live/2033043/tvmc05/master.m3u8
+#EXTINF:-1 tvg-id="DelfiTV.lt" tvg-name="Delfi TV" tvg-logo="https://i.imgur.com/IFoHP5M.png" tvg-chno="4" group-title="LT KANALAI",Delfi TV
+https://s1.dcdn.lt/live/televizija/playlist.m3u8
+#EXTINF:-1 tvg-id="info.mnet.mk" tvg-name="Info TV" tvg-logo="https://i.imgur.com/O26HEyC.png" tvg-chno="5" group-title="LT KANALAI",Info TV
+http://ares.mnet.mk/hls/mnet-info.m3u8
+#EXTINF:-1 tvg-id="ATAJ0500431A" tvg-name="Just TV" tvg-logo="https://tvpnlogopeu.samsungcloud.tv/platform/image/sourcelogo/vc/00/02/34/ATAJ0500431A_20260818T045601SQUARE.png" tvg-chno="6" group-title="LT KANALAI",Just TV
+https://jmp2.uk/stvp-ATAJ0500431A
+#EXTINF:-1 tvg-id="LietuvosRytasTV.lt" tvg-name="Lietuvos rytas TV" tvg-logo="https://i.imgur.com/5wpxVI0.png" tvg-chno="7" group-title="LT KANALAI",Lietuvos rytas TV
+https://live.lietuvosryto.tv/live/hls/eteris.m3u8
+#EXTINF:-1 tvg-id="LNK.lt" tvg-name="LNK" tvg-logo="https://i.imgur.com/arCZ56g.png" tvg-chno="8" group-title="LT KANALAI",LNK
+http://stream.mcquack.net/30/index.m3u8
+#EXTINF:-1 tvg-id="LRTLituanica.lt" tvg-name="LRT Lituanica" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/LRT_Lituanica_Logo_2022.svg/500px-LRT_Lituanica_Logo_2022.svg.png" tvg-chno="9" group-title="LT KANALAI",LRT Lituanica
+https://stream-live.lrt.lt/lituanica/master.m3u8
+#EXTINF:-1 tvg-id="LRTOpus.lt@SD" tvg-name="LRT Opus" tvg-logo="https://i.imgur.com/oLuZTMH.png" tvg-chno="10" group-title="LT KANALAI",LRT Opus
+https://stream-live.lrt.lt/opus/master.m3u8
+#EXTINF:-1 tvg-id="LRTPlius.lt" tvg-name="LRT Plius" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/LRT_Plius_Logo_2022.svg/500px-LRT_Plius_Logo_2022.svg.png" tvg-chno="11" group-title="LT KANALAI",LRT Plius
+https://stream-live.lrt.lt/opus/master.m3u8
+#EXTINF:-1 tvg-id="LRTTV.lt" tvg-name="LRT televizija" tvg-logo="https://i.imgur.com/FL2ZuGC.png" tvg-chno="12" group-title="LT KANALAI",LRT televizija
+http://stream.mcquack.net/31/index.m3u8
+#EXTINF:-1 tvg-id="NutaTV.pl@SD" tvg-name="Nuta.TV" tvg-logo="https://i.imgur.com/JHFUxDu.png" tvg-chno="13" group-title="LT KANALAI",Nuta.TV
+http://92.114.85.87:8010/play/a00j/index.m3u8
+#EXTINF:-1 tvg-id="PlayTV.cm@SD" tvg-name="Play TV" tvg-logo="https://i.imgur.com/1dmBqpf.png" tvg-chno="14" group-title="LT KANALAI",Play TV
+http://web.onair-radio.eu:1935/Alpha-Host/Alpha-Host/playlist.m3u8
+#EXTINF:-1 tvg-id="PowerTV.tr@SD" tvg-name="Power TV" tvg-logo="https://i.imgur.com/XSL1gd7.png" tvg-chno="15" group-title="LT KANALAI",Power TV
+https://livetv.powerapp.com.tr/powerTV/powerhd.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="RENTVInternational.ru@SD" tvg-name="REN TV Lithuania" tvg-logo="https://i.imgur.com/gBjk9oF.png" tvg-chno="16" group-title="LT KANALAI",REN TV Lithuania
+http://178.134.1.158:8081/RENTV/index.m3u8
+#EXTINF:-1 tvg-id="TV3Lithuania.lt" tvg-name="TV3" tvg-logo="https://i.imgur.com/7nipq0y.png" tvg-chno="17" group-title="LT KANALAI",TV3
+https://river-3-368.rtbcdn.ru/hls-vod/7oDjk4KJcPddEyC805r9Ng/1795969338/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="TV6Lithuania.lt" tvg-name="TV6" tvg-logo="https://i.imgur.com/nu0CpJn.png" tvg-chno="18" group-title="LT KANALAI",TV6
+http://stream.mcquack.net/375/index.m3u8
+#EXTINF:-1 tvg-id="TV7Colmar.fr@SD" tvg-name="TV7" tvg-logo="https://i.imgur.com/kSdGi43.png" tvg-chno="19" group-title="LT KANALAI",TV7
+https://tv7.live-kd.com/live/tv7/livestream/playlist.m3u8
+#EXTINF:-1 tvg-id="TV8Lithuania.lt" tvg-name="TV8" tvg-logo="https://i.imgur.com/9g3wknl.png" tvg-chno="20" group-title="LT KANALAI",TV8
+/api/proxy-stream?yt=ny7Z7AMNJcQ
+#EXTINF:-1 tvg-id="TVPInfo.pl@SD" tvg-name="TVP Info" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/2/28/TVP_info_%282024%29.png" tvg-chno="21" group-title="LT KANALAI",TVP Info
+https://dash4.antik.sk/live/test_tvp_info/playlist.m3u8
+#EXTINF:-1 tvg-id="TVPPolonia.pl@SD" tvg-name="TVP Polonia" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/TVP_Polonia_Logo_2020.svg/960px-TVP_Polonia_Logo_2020.svg.png" tvg-chno="22" group-title="LT KANALAI",TVP Polonia
+https://dash2.antik.sk/live/test_tvp_polonia/playlist.m3u8
+#EXTINF:-1 tvg-id="TVPWorld.pl@SD" tvg-name="TVP World" tvg-logo="https://i.imgur.com/lB4MgRI.png" tvg-chno="23" group-title="LT KANALAI",TVP World
+https://dash2.antik.sk/live/test_tvp_world/playlist.m3u8
+#EXTINF:-1 tvg-name="1HD" tvg-logo="https://televizo.live/images/1hd.png" tvg-chno="24" group-title="RU CHANNELS",1HD
+https://tvcdnpotok.com/122/index.m3u8?wmsAuthSign=376b1a88600ec0fb81e04b899c3a7565-1795368102-002i71i16i87
+#EXTINF:-1 tvg-id="Arkhyz24.ru" tvg-name="24 Док" tvg-logo="https://i.imgur.com/mve0sSS.png" tvg-chno="25" group-title="RU CHANNELS",24 Док
+https://live.mediacdn.ru/sr1/arhis24/playlist_hdhigh.m3u8
+#EXTINF:-1 tvg-name="2FILMAX Комедия" tvg-logo="https://televizo.live/images/2filmax-komediya.png" tvg-chno="26" group-title="RU CHANNELS",2FILMAX Комедия
+https://live.cdntvtech.com/4/player/playersjs.html?file=https%3A%2F%2Flive.cdntvtech.com%2F4%2Flivetv.php%3Fkey%3Dc-comedy.m3u8&skin=1
+#EXTINF:-1 tvg-id="2x2.ru@SD" tvg-name="2x2" tvg-logo="https://i.imgur.com/fhQFLEl.png" tvg-chno="27" group-title="RU CHANNELS",2x2
+https://bl.rutube.ru/livestream/392b4686b770bae2da6bf5ac4574add5/index.m3u8?e=2068731801&s=tenr-yHXUv1wibfka78s2A&scheme=https
+#EXTINF:-1 tvg-name="3FILMAX Мелодрама" tvg-logo="https://televizo.live/images/3filmax-melodrama.png" tvg-chno="28" group-title="RU CHANNELS",3FILMAX Мелодрама
+https://live.cdntvtech.com/4/player/playersjs.html?file=https%3A%2F%2Flive.cdntvtech.com%2F4%2Flivetv.php%3Fkey%3Dnext-aura.m3u8&skin=1
+#EXTINF:-1 tvg-id="FoodNetwork.ru@SD" tvg-name="A21 Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Food_Network_New_Logo.png/960px-Food_Network_New_Logo.png" tvg-chno="30" group-title="RU CHANNELS",A21 Network
+http://stream.mcquack.net/298/index.m3u8
+#EXTINF:-1 tvg-id="AmediaHit.ru@SD" tvg-name="Amedia Hit" tvg-logo="https://i.imgur.com/a8ZBGBw.png" tvg-chno="32" group-title="RU CHANNELS",Amedia Hit
+http://stream.mcquack.net/162/index.m3u8
+#EXTINF:-1 tvg-name="Ani" tvg-logo="https://televizo.live/images/ani.png" tvg-chno="33" group-title="RU CHANNELS",Ani
+https://tvcdnpotok.com/190/index.m3u8?wmsAuthSign=2894cca44869eeb3e28a4d8705ff219d-1795368111-002i71i16i87
+#EXTINF:-1 tvg-id="BEKSports.us@West" tvg-name="BEK TV SPORTS" tvg-logo="https://i.imgur.com/1l3t5jd.png" tvg-chno="35" group-title="RU CHANNELS",BEK TV SPORTS
+https://cdn3.wowza.com/5/ZWQ1K2NYTmpFbGsr/BEK-WOWZA-1/smil:BEKPRIMEW.smil/playlist.m3u8
+#EXTINF:-1 tvg-name="Big Planet" tvg-logo="https://televizo.live/images/big-planet.png" tvg-chno="36" group-title="RU CHANNELS",Big Planet
+https://tvcdnpotok.com/2010/index.m3u8?wmsAuthSign=685188db4c2a2da92538a0b32c562dc3-1795368107-002i71i16i87
+#EXTINF:-1 tvg-name="Black" tvg-logo="https://televizo.live/images/black-kanal.png" tvg-chno="37" group-title="RU CHANNELS",Black
+https://tvcdnpotok.com/577/index.m3u8?wmsAuthSign=a33b2a67814ec37138c16c3ae7f67c5c-1795368114-002i71i16i87
+#EXTINF:-1 tvg-id="TVSBoxing.us@SD" tvg-name="Boxing TV" tvg-logo="https://i.imgur.com/30ZoF75.png" tvg-chno="38" group-title="RU CHANNELS",Boxing TV
+https://cdntvmedia.com/players/playerjs.php?file=https://rpn.bozztv.com/gusa/gusa-tvsboxing/index.m3u8&sp=2
+#EXTINF:-1 tvg-id="BRIDGE.ru@SD" tvg-name="Bridge TV" tvg-logo="https://i.imgur.com/qYObfrG.png" tvg-chno="39" group-title="RU CHANNELS",Bridge TV
+https://tvcdnpotok.com/160/index.m3u8?wmsAuthSign=a9bcc37d6674e253487762e8416a9d7f-1795368120-002i71i16i87
+#EXTINF:-1 tvg-name="Bridge TV Hits" tvg-logo="https://televizo.live/images/bridge-tv-hits.png" tvg-chno="40" group-title="RU CHANNELS",Bridge TV Hits
+https://tvcdnpotok.com/217/index.m3u8?wmsAuthSign=66bb62b1a5736c41f562c113cad6db8f-1795368123-002i71i16i87
+#EXTINF:-1 tvg-id="CartoonNetwork.us" tvg-name="Cartoon Network RU" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/960px-Cartoon_Network_2010_logo.svg.png" tvg-chno="41" group-title="RU CHANNELS",Cartoon Network RU
+https://tvcdnpotok.com/2042/index.m3u8?wmsAuthSign=a4527452d59024f4ea0cce5267d04db6-1795368119-002i71i16i87
+#EXTINF:-1 tvg-name="Cartoonito" tvg-logo="https://televizo.live/images/cartoonito.png" tvg-chno="42" group-title="RU CHANNELS",Cartoonito
+https://tvcdnpotok.com/2043/index.m3u8?wmsAuthSign=c4d4742f16e8b783a9168d1333cbdf62-1795368125-002i71i16i87
+#EXTINF:-1 tvg-name="CGTN Русский" tvg-logo="https://i.ytimg.com/vi/C3BKx6JxCQU/hqdefault.jpg" tvg-chno="43" group-title="RU CHANNELS",CGTN Русский
+https://news.cgtn.com/resource/live/russian/cgtn-r.m3u8
+#EXTINF:-1 tvg-name="CineMan" tvg-logo="https://televizo.live/images/cinemas/cineman.png" tvg-chno="44" group-title="RU CHANNELS",CineMan
+https://tvcdnpotok.com/2049/index.m3u8?wmsAuthSign=53721b5eb9e6e3f9b6d0a6ffc179af98-1795368128-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Action" tvg-logo="https://televizo.live/images/cinemas/cineman-action.png" tvg-chno="45" group-title="RU CHANNELS",CineMan Action
+https://tvcdnpotok.com/2051/index.m3u8?wmsAuthSign=d8b3aedb6982567bce5bea980113b579-1795368132-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Marvel" tvg-logo="https://televizo.live/images/cinemas/cineman-marvel.png" tvg-chno="46" group-title="RU CHANNELS",CineMan Marvel
+https://tvcdnpotok.com/2050/index.m3u8?wmsAuthSign=83111a795a5a309a9f81cfc0f64bf51b-1795368137-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Melodrama" tvg-logo="https://televizo.live/images/cinemas/cineman-melodrama.png" tvg-chno="47" group-title="RU CHANNELS",CineMan Melodrama
+https://tvcdnpotok.com/2053/index.m3u8?wmsAuthSign=53071a4d733adebe52cf882f35c242d2-1795368141-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Thriller" tvg-logo="https://televizo.live/images/cinemas/cineman-thriller.png" tvg-chno="48" group-title="RU CHANNELS",CineMan Thriller
+https://tvcdnpotok.com/2052/index.m3u8?wmsAuthSign=0df5b92d66a985df6b26aa198fb754d5-1795368147-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Top" tvg-logo="https://televizo.live/images/cinemas/cineman-top.png" tvg-chno="49" group-title="RU CHANNELS",CineMan Top
+https://tvcdnpotok.com/2054/index.m3u8?wmsAuthSign=e3283651cc2faa7a87dcd02dfdf6332f-1795368151-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan VHS" tvg-logo="https://televizo.live/images/cinemas/cineman-vhs.png" tvg-chno="50" group-title="RU CHANNELS",CineMan VHS
+https://tvcdnpotok.com/2058/index.m3u8?wmsAuthSign=1de67bf1aa8224729807cbf2f6781a4e-1795368154-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Катастрофы" tvg-logo="https://televizo.live/images/cinemas/cineman-katastrofy.png" tvg-chno="51" group-title="RU CHANNELS",CineMan Катастрофы
+https://tvcdnpotok.com/2055/index.m3u8?wmsAuthSign=3e618245aba313716dc56838b7d522c7-1795368158-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Комедия" tvg-logo="https://televizo.live/images/cinemas/cineman-komediya.png" tvg-chno="52" group-title="RU CHANNELS",CineMan Комедия
+https://tvcdnpotok.com/2057/index.m3u8?wmsAuthSign=d4065a7ee67a465d42f51c2bef6deb62-1795368161-002i71i16i87
+#EXTINF:-1 tvg-name="CineMan Ужасы" tvg-logo="https://televizo.live/images/cinemas/cineman-uzhasy.png" tvg-chno="53" group-title="RU CHANNELS",CineMan Ужасы
+https://tvcdnpotok.com/2056/index.m3u8?wmsAuthSign=386266f944a34c53675cee4d41ffdd25-1795368165-002i71i16i87
+#EXTINF:-1 tvg-name="Elite Comedys" tvg-logo="https://televizo.live/images/cinemas/kbc-elite-comedys.png" tvg-chno="55" group-title="RU CHANNELS",Elite Comedys
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dkbc-elite-comedys.m3u8&skin=1
+#EXTINF:-1 tvg-id="EuropaPlusTV.ru@Belarus" tvg-name="Europa Plus TV" tvg-logo="https://i.imgur.com/GLc4qrc.png" tvg-chno="56" group-title="RU CHANNELS",Europa Plus TV
+https://river-3-366.rtbcdn.ru/hls-vod/2xfjB9vJIhQx8swkp8_lBQ/1795969417/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Fantastic" tvg-logo="https://televizo.live/images/cinemas/kbc-fantastic.png" tvg-chno="57" group-title="RU CHANNELS",Fantastic
+https://tvcdnpotok.com/2066/index.m3u8?wmsAuthSign=de41674d39a42e499dc8734ea85a8f3a-1795368168-002i71i16i87
+#EXTINF:-1 tvg-name="Fashion TV" tvg-logo="https://televizo.live/images/fashion_tv.png" tvg-chno="58" group-title="RU CHANNELS",Fashion TV
+https://cdntvmedia.com/players/playerjs.php?file=https://lbgo.bozztv.com/07/ushba93/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="FilmBox" tvg-logo="https://televizo.live/images/filmbox.png" tvg-chno="59" group-title="RU CHANNELS",FilmBox
+https://tvcdnpotok.com/214/index.m3u8?wmsAuthSign=885c17bec18d78349c6160cbcce66afb-1795368174-002i71i16i87
+#EXTINF:-1 tvg-id="FoxLife.ru@SD" tvg-name="Fox Life" tvg-logo="https://i.imgur.com/O2miSLA.png" tvg-chno="60" group-title="RU CHANNELS",Fox Life
+https://github.com/CODERX24/tv/blob/master/FOXNEWS.m3u8
+#EXTINF:-1 tvg-name="Fresh Adventure" tvg-logo="https://televizo.live/images/cinemas/fresh-adventure.png" tvg-chno="61" group-title="RU CHANNELS",Fresh Adventure
+https://tvcdnpotok.com/2068/index.m3u8?wmsAuthSign=cca318ef406be81864c556156780321e-1795368178-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Cinema" tvg-logo="https://televizo.live/images/cinemas/fresh-cinema.png" tvg-chno="62" group-title="RU CHANNELS",Fresh Cinema
+https://tvcdnpotok.com/2060/index.m3u8?wmsAuthSign=dcfbaf60e2a53a6529f8438164a9c0c7-1795368182-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Comedy" tvg-logo="https://televizo.live/images/cinemas/fresh-comedy.png" tvg-chno="63" group-title="RU CHANNELS",Fresh Comedy
+https://tvcdnpotok.com/2061/index.m3u8?wmsAuthSign=c25817f8aa3790a1248f7c6b4496e5af-1795368184-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Family" tvg-logo="https://televizo.live/images/cinemas/fresh-family.png" tvg-chno="64" group-title="RU CHANNELS",Fresh Family
+https://tvcdnpotok.com/2063/index.m3u8?wmsAuthSign=e9002151491d50170889b18726ee66b4-1795368187-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Fantastic" tvg-logo="https://televizo.live/images/cinemas/fresh-fantastic.png" tvg-chno="65" group-title="RU CHANNELS",Fresh Fantastic
+https://tvcdnpotok.com/2066/index.m3u8?wmsAuthSign=42364a994d03972ba0dfcaa25624ad83-1795368192-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Horror" tvg-logo="https://televizo.live/images/cinemas/fresh-horror.png" tvg-chno="66" group-title="RU CHANNELS",Fresh Horror
+https://tvcdnpotok.com/2067/index.m3u8?wmsAuthSign=01237fed0437e65bc4242439bc15aa9a-1795368196-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Premiere" tvg-logo="https://televizo.live/images/cinemas/fresh-premiere.png" tvg-chno="67" group-title="RU CHANNELS",Fresh Premiere
+https://tvcdnpotok.com/2062/index.m3u8?wmsAuthSign=2aae87c096a1c2f4b00cbeee522a78a8-1795368198-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Rating" tvg-logo="https://televizo.live/images/cinemas/fresh-rating.png" tvg-chno="68" group-title="RU CHANNELS",Fresh Rating
+https://tvcdnpotok.com/2064/index.m3u8?wmsAuthSign=40a3cce59c35b99836da206021f7fab6-1795368201-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Romantic" tvg-logo="https://televizo.live/images/cinemas/fresh-romantic.png" tvg-chno="69" group-title="RU CHANNELS",Fresh Romantic
+https://tvcdnpotok.com/2069/index.m3u8?wmsAuthSign=f3c61040cc68ea1429b65a5c5fb88416-1795368204-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Soviet" tvg-logo="https://televizo.live/images/cinemas/fresh-soviet.png" tvg-chno="70" group-title="RU CHANNELS",Fresh Soviet
+https://tvcdnpotok.com/2071/index.m3u8?wmsAuthSign=00d6be8581ad80a402d47bac0516d7c1-1795368208-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh Thriller" tvg-logo="https://televizo.live/images/cinemas/fresh-thriller.png" tvg-chno="71" group-title="RU CHANNELS",Fresh Thriller
+https://tvcdnpotok.com/2070/index.m3u8?wmsAuthSign=262f75567af17fc28da8aee34888327c-1795368211-002i71i16i87
+#EXTINF:-1 tvg-name="Fresh VHS" tvg-logo="https://televizo.live/images/cinemas/fresh-vhs.png" tvg-chno="72" group-title="RU CHANNELS",Fresh VHS
+https://tvcdnpotok.com/2065/index.m3u8?wmsAuthSign=873daa63e9e8747f407399717b62bcb0-1795368213-002i71i16i87
+#EXTINF:-1 tvg-id="FutbolTV.uz@HD" tvg-name="Futbol TV" tvg-logo="https://i.ibb.co/h1gQSkbB/Futbol-TV.png" tvg-chno="74" group-title="RU CHANNELS",Futbol TV
+http://stream3.cinerama.uz/1010/tracks-v1a1/mono.m3u8
+#EXTINF:-1 tvg-name="Galaxy TV" tvg-logo="https://televizo.live/images/galaxy-tv.png" tvg-chno="75" group-title="RU CHANNELS",Galaxy TV
+https://tvcdnpotok.com/205/index.m3u8?wmsAuthSign=5fbbad5e02428878932bf0478c607d95-1795368216-002i71i16i87
+#EXTINF:-1 tvg-name="Goblin" tvg-logo="https://televizo.live/images/cinemas/kbc-goblin.png" tvg-chno="76" group-title="RU CHANNELS",Goblin
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dkbc-goblin.m3u8&skin=1
+#EXTINF:-1 tvg-name="Gulli Girl" tvg-logo="https://televizo.live/images/gulli-girl.png" tvg-chno="77" group-title="RU CHANNELS",Gulli Girl
+https://tvcdnpotok.com/180/index.m3u8?wmsAuthSign=aab189859093dbaef4332c78ec880b6c-1795368219-002i71i16i87
+#EXTINF:-1 tvg-name="History 2" tvg-logo="https://televizo.live/images/history-2.png" tvg-chno="78" group-title="RU CHANNELS",History 2
+https://tvcdnpotok.com/224/index.m3u8?wmsAuthSign=8d8a4cfdbf6680fbce0869026461a578-1795368223-002i71i16i87
+#EXTINF:-1 tvg-name="Hollywood" tvg-logo="https://televizo.live/images/hollywood.png" tvg-chno="79" group-title="RU CHANNELS",Hollywood
+https://tvcdnpotok.com/507/index.m3u8?wmsAuthSign=0ae27b2b773cf95462e46fda09988e84-1795368212-002i71i16i87
+#EXTINF:-1 tvg-id="HorseCountryTV.uk@SD" tvg-name="Horse & Country TV" tvg-logo="https://i.imgur.com/1x6zYZr.png" tvg-chno="80" group-title="RU CHANNELS",Horse & Country TV
+https://hnc-free-viewlift.amagi.tv/HNC_AUSTRALIA.m3u8
+#EXTINF:-1 tvg-name="KinoJam 1" tvg-logo="https://televizo.live/images/kinojam-1.png" tvg-chno="82" group-title="RU CHANNELS",KinoJam 1
+https://tvcdnpotok.com/2039/index.m3u8?wmsAuthSign=9f708f9c8a719c434c4152f2be502096-1795368226-002i71i16i87
+#EXTINF:-1 tvg-name="KroneHit TV" tvg-logo="https://televizo.live/images/kronehit-tv.png" tvg-chno="83" group-title="RU CHANNELS",KroneHit TV
+https://bitcdn-kronehit.bitmovin.com/v2/hls/playlist.m3u8
+#EXTINF:-1 tvg-name="Luxury" tvg-logo="https://televizo.live/images/luxury.png" tvg-chno="84" group-title="RU CHANNELS",Luxury
+https://bl.rutube.ru/livestream/5e5c002f266cbb781058c145b0522b5c/index.m3u8?s=iM99d4-bqw5VhNBQ0aF-lw&e=2092163734&scheme=https
+#EXTINF:-1 tvg-name="MCM Top" tvg-logo="https://televizo.live/images/mcm-top.png" tvg-chno="85" group-title="RU CHANNELS",MCM Top
+https://tvcdnpotok.com/535/index.m3u8?wmsAuthSign=b4018bff209f2e601719aafab2327cf9-1795368230-002i71i16i87
+#EXTINF:-1 tvg-name="Mezzo" tvg-logo="https://televizo.live/images/mezzo.png" tvg-chno="86" group-title="RU CHANNELS",Mezzo
+https://tvcdnpotok.com/553/index.m3u8?wmsAuthSign=5289890d7adb94d496135664074b9d7f-1795368233-002i71i16i87
+#EXTINF:-1 tvg-name="MM 007" tvg-logo="https://televizo.live/images/cinemas/mm-007.png" tvg-chno="87" group-title="RU CHANNELS",MM 007
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dmm-007.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM UFO" tvg-logo="https://televizo.live/images/cinemas/mm-ufo.png" tvg-chno="88" group-title="RU CHANNELS",MM UFO
+https://os.cdntvtech.com/2/player/playersjs.php?file=https%3A%2F%2Fos.cdntvtech.com%2F2%2Flivetv.php%3Fkey%3Dmm-ufo.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Боевик" tvg-logo="https://televizo.live/images/cinemas/mm-boevik.png" tvg-chno="89" group-title="RU CHANNELS",MM Боевик
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dmm-boevik.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Комедия" tvg-logo="https://televizo.live/images/cinemas/mm-komediya.png" tvg-chno="90" group-title="RU CHANNELS",MM Комедия
+https://os.cdntvtech.com/2/player/playersjs.php?file=https%3A%2F%2Fos.cdntvtech.com%2F2%2Flivetv.php%3Fkey%3Dmm-komediya.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Приключения" tvg-logo="https://televizo.live/images/cinemas/mm-priklyucheniya.png" tvg-chno="91" group-title="RU CHANNELS",MM Приключения
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dmm-priklyucheniya.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Скорость" tvg-logo="https://televizo.live/images/cinemas/mm-skorost.png" tvg-chno="92" group-title="RU CHANNELS",MM Скорость
+https://tvs.cdntvtech.com/4/player/playersjs.html?file=https%3A%2F%2Ftvs.cdntvtech.com%2F4%2Flivetv.php%3Fkey%3Dmm-skorost.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Супергерои" tvg-logo="https://televizo.live/images/cinemas/mm-supergeroi.png" tvg-chno="93" group-title="RU CHANNELS",MM Супергерои
+https://os.cdntvtech.com/2/player/playersjs.php?file=https%3A%2F%2Fos.cdntvtech.com%2F2%2Flivetv.php%3Fkey%3Dmm-supergeroi.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Триллер" tvg-logo="https://televizo.live/images/cinemas/mm-triller.png" tvg-chno="94" group-title="RU CHANNELS",MM Триллер
+https://os.cdntvtech.com/2/player/playersjs.php?file=https%3A%2F%2Fos.cdntvtech.com%2F2%2Flivetv.php%3Fkey%3Dmm-triller.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Ужастик" tvg-logo="https://televizo.live/images/cinemas/mm-uzhastik.png" tvg-chno="95" group-title="RU CHANNELS",MM Ужастик
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dmm-uzhastik.m3u8&skin=1
+#EXTINF:-1 tvg-name="MM Фантастика" tvg-logo="https://televizo.live/images/cinemas/mm-fantastika.png" tvg-chno="96" group-title="RU CHANNELS",MM Фантастика
+https://tvs.cdntvtech.com/4/player/playersjs.html?file=https%3A%2F%2Ftvs.cdntvtech.com%2F4%2Flivetv.php%3Fkey%3Dmm-fantastika.m3u8&skin=1
+#EXTINF:-1 tvg-name="Motor Racing" tvg-logo="https://televizo.live/images/motor-racing.png" tvg-chno="97" group-title="RU CHANNELS",Motor Racing
+https://cdntvmedia.com/players/playerjs.php?file=https://digicom.hls.iptvdc.com/motorstv/tracks-v2a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Music Box Russia" tvg-logo="https://televizo.live/images/music-box-russia.png" tvg-chno="98" group-title="RU CHANNELS",Music Box Russia
+https://tvcdnpotok.com/168/index.m3u8?wmsAuthSign=aebc6d6a70c70ce7936d73db07c839f6-1795368262-002i71i16i87
+#EXTINF:-1 tvg-name="Newfilm" tvg-logo="https://televizo.live/images/cinemas/kbc-newfilm.png" tvg-chno="99" group-title="RU CHANNELS",Newfilm
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dkbc-newfilm.m3u8&skin=1
+#EXTINF:-1 tvg-name="Paramount Channel" tvg-logo="https://i.imgur.com/CfqRav0.png" tvg-chno="100" group-title="RU CHANNELS",Paramount Channel
+http://service-stitcher.clusters.pluto.tv/stitch/hls/channel/5cb0cae7a461406ffe3f5213/master.m3u8?terminate=false&deviceType=web&deviceMake=web&deviceModel=web&sid=100&deviceId=5cb0cae7a461406ffe3f5213&deviceVersion=DNT&appVersion=DNT&deviceDNT=0&userId=&advertisingId=&deviceLat=&deviceLon=&app_name=&appName=web&buildVersion=&appStoreUrl=&architecture=&includeExtendedEvents=false&marketingRegion=US&serverSideAds=false
+#EXTINF:-1 tvg-name="QazSport" tvg-logo="https://televizo.live/images/qazsport.png" tvg-chno="101" group-title="RU CHANNELS",QazSport
+https://cdntvmedia.com/players/playerjs.php?file=https://qazsporttv-stream.qazcdn.com/qazsporttv/qazsporttv/tracks-v4a1/mono.ts.m3u8&sp=2
+#EXTINF:-1 tvg-name="Real Madrid TV" tvg-logo="https://televizo.live/images/real-madrid-tv.png" tvg-chno="102" group-title="RU CHANNELS",Real Madrid TV
+https://cdntvmedia.com/players/playerjs.php?file=https://rmtv.akamaized.net/hls/live/2043153/rmtv-es-web/master.m3u8&sp=2
+#EXTINF:-1 tvg-name="Red" tvg-logo="https://televizo.live/images/red-kanal.png" tvg-chno="103" group-title="RU CHANNELS",Red
+https://tvcdnpotok.com/576/index.m3u8?wmsAuthSign=3a562baa67c2274a7e136704e7920da8-1795368274-002i71i16i87
+#EXTINF:-1 tvg-id="RedBullTV.at@EUMENA" tvg-name="Red Bull TV" tvg-logo="https://images.pluto.tv/channels/5e7cb84a172a0f0007da69e4/colorLogoPNG.png" tvg-chno="104" group-title="RU CHANNELS",Red Bull TV
+https://cdntvmedia.com/players/playerjs.php?file=https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8%20or%20https://dms.redbull.tv/v3/linear-borb/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXRlZ29yeSI6InBlcnNvbmFsX2NvbXB1dGVyIiwiY291bnRyeV9jb2RlIjoicnUiLCJleHBpcmVzIjoiMjAyMS0xMC0xOVQxMzozNjoxMy4zNTk5NTczMjRaIiwibG9jYWxlIjoiZW4iLCJvc19mYW1pbHkiOiJodHRwIiwicmVtb3RlX2lwIjoiMzEuMTQ4LjIwNS40MSIsInVhIjoiTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzkyLjAuNDUxNS4xMzEgU2FmYXJpLzUzNy4zNiIsInVpZCI6ImMyNTNhYzE1LTY0ZWYtNGY1My05MjFlLWNjN2E0MjM3ZThkMCJ9.F78mVlGydZUYLx-OjL3H1covJQICENyB03xx9UmJfd0/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="Retro Music TV" tvg-logo="https://televizo.live/images/retro-music-tv.png" tvg-chno="105" group-title="RU CHANNELS",Retro Music TV
+https://cdntvmedia.com/players/playerjs.php?file=https://stream.mediawork.cz/retrotv/retrotvHQ1/chunklist_w2024688549.m3u8&sp=2
+#EXTINF:-1 tvg-name="Rock TV" tvg-logo="https://televizo.live/images/rock-tv.png" tvg-chno="106" group-title="RU CHANNELS",Rock TV
+https://cdntvmedia.com/players/playerjs.php?file=https://tv.broadcasting.ro/rocktv/85c83a80-4f71-4f2d-a8d6-43f676896bcb_output_0.m3u8&sp=2
+#EXTINF:-1 tvg-id="RTenEspanol.ru" tvg-name="RT" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Russia-today-logo.svg/500px-Russia-today-logo.svg.png" tvg-chno="107" group-title="RU CHANNELS",RT
+https://rt-esp.rttv.com/dvr/rtesp/playlist.m3u8
+#EXTINF:-1 tvg-name="RTG TV" tvg-logo="https://televizo.live/images/rtg-tv.png" tvg-chno="108" group-title="RU CHANNELS",RTG TV
+https://tvcdnpotok.com/545/index.m3u8?wmsAuthSign=cb40283c48ee7d09d3289c5fc4cebbde-1795368286-002i71i16i87
+#EXTINF:-1 tvg-id="AstrahanRuTV.ru@SD" tvg-name="RU.TV" tvg-logo="https://i.imgur.com/w4ys6zm.png" tvg-chno="109" group-title="RU CHANNELS",RU.TV
+https://streaming.astrakhan.ru/astrakhanrulivehd/playlist.m3u8
+#EXTINF:-1 tvg-name="Sci-Fi" tvg-logo="https://televizo.live/images/sci-fi.png" tvg-chno="110" group-title="RU CHANNELS",Sci-Fi
+https://tvcdnpotok.com/145/index.m3u8?wmsAuthSign=fc352a90824ac77cd3fb99d6a8c2e993-1795368289-002i71i16i87
+#EXTINF:-1 tvg-id="AstrahanRuSport.ru@SD" tvg-name="Setanta Sport" tvg-logo="https://i.imgur.com/BKaEtqL.png" tvg-chno="111" group-title="RU CHANNELS",Setanta Sport
+https://streaming.astrakhan.ru/astrakhanrusporthd/playlist.m3u8
+#EXTINF:-1 tvg-id="SetantaSports1.ru@HD" tvg-name="Setanta Sports 1" tvg-logo="https://i.imgur.com/8ANUZAu.png" tvg-chno="112" group-title="RU CHANNELS",Setanta Sports 1
+https://cdntvmedia.com/players/playerjs.php?file=https://stream2.cinerama.uz/1263/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-id="SetantaSports2Eurasia.ie@SD" tvg-name="Setanta Sports 2" tvg-logo="https://i.imgur.com/ouHunnK.png" tvg-chno="113" group-title="RU CHANNELS",Setanta Sports 2
+https://cdntvmedia.com/players/playerjs.php?file=https://stream2.cinerama.uz/1264/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="SONGTV Россия" tvg-logo="https://televizo.live/images/songtv-rossiya.png" tvg-chno="114" group-title="RU CHANNELS",SONGTV Россия
+https://cdntvmedia.com/players/playerjs.php?file=https://songtv.hls.iptvdc.com/web-russia/hd/playlist.m3u8%20or%20https://songtv.hls.iptvdc.com/web-russia/tracks-v3a1/index.m3u8%20or%20https://songtv.hls.iptvdc.com/web-russia/tracks-v3a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-id="SonyPix.in@HD" tvg-name="Sony Channel" tvg-logo="https://i.postimg.cc/Z5G8j67L/PIX-HD-WHITE.png" tvg-chno="115" group-title="RU CHANNELS",Sony Channel
+https://tvcdnpotok.com/576/index.m3u8?wmsAuthSign=3d0d0b98f999cd0f5037368a64e5f421-1795368275-002i71i16i87
+#EXTINF:-1 tvg-id="Stadium.us@SD" tvg-name="Stadium" tvg-logo="https://upload.wikimedia.org/wikipedia/en/thumb/5/53/Stadium_%28sports_network%29_logo.svg/960px-Stadium_%28sports_network%29_logo.svg.png" tvg-chno="116" group-title="RU CHANNELS",Stadium
+https://wurl120sports.global.transmit.live/hls/679a907dce42a042c23ace37/v1/stadium_gracenote/samsung_us/latest/main/hls/playlist.m3u8
+#EXTINF:-1 tvg-name="Terra" tvg-logo="https://televizo.live/images/terra.png" tvg-chno="117" group-title="RU CHANNELS",Terra
+https://tvcdnpotok.com/2009/index.m3u8?wmsAuthSign=864d3cf8b14ae9577670dd09f26f859b-1795368301-002i71i16i87
+#EXTINF:-1 tvg-name="Trace Sport Stars" tvg-logo="https://televizo.live/images/trace-sport-stars.png" tvg-chno="118" group-title="RU CHANNELS",Trace Sport Stars
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1274/tracks-v2a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Trace Urban" tvg-logo="https://televizo.live/images/trace-urban.png" tvg-chno="119" group-title="RU CHANNELS",Trace Urban
+https://cdntvmedia.com/players/playerjs.php?file=https://channels.trace.plus/Traceprod/URBAN_FR/.m3u8%20or%20https://lightning-traceurban-samsungau.amagi.tv/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="Trash TV" tvg-logo="https://televizo.live/images/trash-tv.png" tvg-chno="120" group-title="RU CHANNELS",Trash TV
+https://hi.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fhi.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dtrash.m3u8&skin=1
+#EXTINF:-1 tvg-name="Travel+Adventure" tvg-logo="https://televizo.live/images/travel-adventure.png" tvg-chno="121" group-title="RU CHANNELS",Travel+Adventure
+https://tvcdnpotok.com/112/index.m3u8?wmsAuthSign=a93562621907c5f88c27dfef31d57fbe-1795368315-002i71i16i87
+#EXTINF:-1 tvg-name="TV 21" tvg-logo="https://televizo.live/images/tv-xxi.png" tvg-chno="122" group-title="RU CHANNELS",TV 21
+https://tvcdnpotok.com/133/index.m3u8?wmsAuthSign=d5913f693079c71ae2c76821a18a8bec-1795368317-002i71i16i87
+#EXTINF:-1 tvg-name="Univer TV" tvg-logo="https://televizo.live/images/univer_tv.png" tvg-chno="123" group-title="RU CHANNELS",Univer TV
+https://cdntvmedia.com/players/playerjs.php?file=https://cdn.universmotri.ru/live/smil:univer.smil/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="V2Beat" tvg-logo="https://televizo.live/images/v2beat.png" tvg-chno="124" group-title="RU CHANNELS",V2Beat
+https://cdntvmedia.com/players/playerjs.php?file=https://abr.de1se01.v2beat.live/playlist.m3u8%20or%20https://abr.de1se01.v2beat.live/live/live6/chunks.m3u8&sp=2
+#EXTINF:-1 tvg-name="VeleS Movie Hits" tvg-logo="https://televizo.live/images/cinemas/veles-movie-hits.png" tvg-chno="125" group-title="RU CHANNELS",VeleS Movie Hits
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-moviehits.m3u8&skin=1
+#EXTINF:-1 tvg-name="VeleS Premiere" tvg-logo="https://televizo.live/images/cinemas/veles-premiere.png" tvg-chno="126" group-title="RU CHANNELS",VeleS Premiere
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-premiere.m3u8&skin=1
+#EXTINF:-1 tvg-name="VeleS Гоблин" tvg-logo="https://televizo.live/images/cinemas/veles-goblin.png" tvg-chno="127" group-title="RU CHANNELS",VeleS Гоблин
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-goblin.m3u8&skin=1
+#EXTINF:-1 tvg-name="VeleS Комедия" tvg-logo="https://televizo.live/images/cinemas/veles-komediya.png" tvg-chno="128" group-title="RU CHANNELS",VeleS Комедия
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-komediya.m3u8&skin=1
+#EXTINF:-1 tvg-name="VeleS Страшное" tvg-logo="https://televizo.live/images/cinemas/veles-strashnoe.png" tvg-chno="129" group-title="RU CHANNELS",VeleS Страшное
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-strashnoe.m3u8&skin=1
+#EXTINF:-1 tvg-name="VeleS Триллер" tvg-logo="https://televizo.live/images/cinemas/veles-triller.png" tvg-chno="130" group-title="RU CHANNELS",VeleS Триллер
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dvs-triller.m3u8&skin=1
+#EXTINF:-1 tvg-name="Viasat History" tvg-logo="https://televizo.live/images/viasat_history.png" tvg-chno="131" group-title="RU CHANNELS",Viasat History
+https://tvcdnpotok.com/111/index.m3u8?wmsAuthSign=30c2f2f798faa2f6dcba0d1d7047a562-1795368344-002i71i16i87
+#EXTINF:-1 tvg-name="Viasat Nature" tvg-logo="https://televizo.live/images/viasat_nature.png" tvg-chno="132" group-title="RU CHANNELS",Viasat Nature
+https://tvcdnpotok.com/110/index.m3u8?wmsAuthSign=2e5313e645d2b6c9a746c1144c7d1772-1795368347-002i71i16i87
+#EXTINF:-1 tvg-name="WAR" tvg-logo="https://televizo.live/images/cinemas/kbc-war.png" tvg-chno="133" group-title="RU CHANNELS",WAR
+https://jmp2.uk/stvp-GBBD1100001UI
+#EXTINF:-1 tvg-name="World Poker Tour" tvg-logo="https://televizo.live/images/world-poker-tour.png" tvg-chno="134" group-title="RU CHANNELS",World Poker Tour
+https://cdntvmedia.com/players/playerjs.php?file=https://amg00218-wptenterprisesi-worldpokertour-xumo-us.amagi.tv/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="XFC TV Fightworld" tvg-logo="https://televizo.live/images/xfc-tv-fightworld.png" tvg-chno="135" group-title="RU CHANNELS",XFC TV Fightworld
+https://cdntvmedia.com/players/playerjs.php?file=https://stream-us-east-1.getpublica.com/playlist.m3u8?network_id=2351&sp=2
+#EXTINF:-1 tvg-name="YOSSO Adrenaline" tvg-logo="https://televizo.live/images/cinemas/yosso-adrenaline.png" tvg-chno="136" group-title="RU CHANNELS",YOSSO Adrenaline
+https://tvs.cdntvtech.com/4/player/playersjs.html?file=https%3A%2F%2Ftvs.cdntvtech.com%2F4%2Flivetv.php%3Fkey%3Dys-adrenaline.m3u8&skin=1
+#EXTINF:-1 tvg-name="YOSSO Adventure" tvg-logo="https://televizo.live/images/cinemas/yosso-adventure.png" tvg-chno="137" group-title="RU CHANNELS",YOSSO Adventure
+https://river-3-3121.rtbcdn.ru/hls-vod/vPk6997nVB1SRhK_gfRM7w/1795969621/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="YOSSO Grand" tvg-logo="https://televizo.live/images/cinemas/yosso-grand.png" tvg-chno="138" group-title="RU CHANNELS",YOSSO Grand
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dys-grand.m3u8&skin=1
+#EXTINF:-1 tvg-name="YOSSO Netflix" tvg-logo="https://televizo.live/images/cinemas/yosso-netflix.png" tvg-chno="139" group-title="RU CHANNELS",YOSSO Netflix
+https://river-3-3121.rtbcdn.ru/hls-vod/xYSkFmI51Sq83ejKLCAs9g/1795969629/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="YOSSO New Кино" tvg-logo="https://televizo.live/images/cinemas/yosso-new-kino.png" tvg-chno="140" group-title="RU CHANNELS",YOSSO New Кино
+https://river-3-3121.rtbcdn.ru/hls-vod/RWgAtkDZh68TMWsc-z_vnQ/1795969633/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="YOSSO Thriller" tvg-logo="https://televizo.live/images/cinemas/yosso-thriller.png" tvg-chno="141" group-title="RU CHANNELS",YOSSO Thriller
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dys-thriller.m3u8&skin=1
+#EXTINF:-1 tvg-name="YOSSO TV C-Marvel" tvg-logo="https://televizo.live/images/cinemas/yosso-tv-c-marvel.png" tvg-chno="142" group-title="RU CHANNELS",YOSSO TV C-Marvel
+https://river-3-3121.rtbcdn.ru/hls-vod/W9-sLt7cHyI-Utg1Hk3nxA/1795969640/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="ZooПарк" tvg-logo="https://televizo.live/images/zoopark-tv.png" tvg-chno="143" group-title="RU CHANNELS",ZooПарк
+https://tvcdnpotok.com/2022/index.m3u8?wmsAuthSign=1b786b8354d5b433ee72f794b846487a-1795368383-002i71i16i87
+#EXTINF:-1 tvg-name="Авто24" tvg-logo="https://televizo.live/images/avto24.png" tvg-chno="144" group-title="RU CHANNELS",Авто24
+https://tvcdnpotok.com/146/index.m3u8?wmsAuthSign=f782022e543667035ccd7edb1358e815-1795368308-002i71i16i87
+#EXTINF:-1 tvg-id="BelRos.ru" tvg-name="БелРос" tvg-logo="https://i.imgur.com/tUF33HD.png" tvg-chno="145" group-title="RU CHANNELS",БелРос
+https://live2.mediacdn.ru/sr1/tro/playlist.m3u8
+#EXTINF:-1 tvg-name="Беларусь 5" tvg-logo="https://televizo.live/images/belarus-5.png" tvg-chno="146" group-title="RU CHANNELS",Беларусь 5
+https://cdntvmedia.com/players/playerjs.php?file=https://ngtrk.dc.beltelecom.by/ngtrk/smil:belarus5/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="Блокбастер" tvg-logo="https://televizo.live/images/blockbaster-hd.png" tvg-chno="147" group-title="RU CHANNELS",Блокбастер
+https://tvcdnpotok.com/249/index.m3u8?wmsAuthSign=5a9993531f680cc14e49f7918df28054-1795368389-002i71i16i87
+#EXTINF:-1 tvg-name="Бобер" tvg-logo="https://televizo.live/images/bober.png" tvg-chno="148" group-title="RU CHANNELS",Бобер
+https://tvcdnpotok.com/189/index.m3u8?wmsAuthSign=31c9e0aeb4042225ebb441072636102a-1795368313-002i71i16i87
+#EXTINF:-1 tvg-name="Бобер ТВ" tvg-logo="https://televizo.live/images/bober.png" tvg-chno="149" group-title="RU CHANNELS",Бобер ТВ
+https://tvcdnpotok.com/189/index.m3u8?wmsAuthSign=fbf069a056e41bd076635583165e34dc-1795368317-002i71i16i87
+#EXTINF:-1 tvg-name="Большая Азия" tvg-logo="https://televizo.live/images/bolshaya-aziya.png" tvg-chno="150" group-title="RU CHANNELS",Большая Азия
+https://tvcdnpotok.com/2002/index.m3u8?wmsAuthSign=f2ac3dead66ee1a3e5bc5d2f8fb20c31-1795368392-002i71i16i87
+#EXTINF:-1 tvg-name="В гостях у сказки" tvg-logo="https://televizo.live/images/v-gostyakh-u-skazki.png" tvg-chno="151" group-title="RU CHANNELS",В гостях у сказки
+https://tvcdnpotok.com/550/index.m3u8?wmsAuthSign=27cbd8e19c192eafd7f5be3fc3ab3ab5-1795368395-002i71i16i87
+#EXTINF:-1 tvg-name="В мире животных" tvg-logo="https://televizo.live/images/v-mire-zhivotnykh.png" tvg-chno="152" group-title="RU CHANNELS",В мире животных
+https://tvcdnpotok.com/221/index.m3u8?wmsAuthSign=3aa1a679267077048e91936ba643a54b-1795368325-002i71i16i87
+#EXTINF:-1 tvg-name="Видак" tvg-logo="https://televizo.live/images/cinemas/kbc-vidak.png" tvg-chno="153" group-title="RU CHANNELS",Видак
+https://os.cdntvtech.com/2/player/playersjs.php?file=https%3A%2F%2Fos.cdntvtech.com%2F2%2Flivetv.php%3Fkey%3Dkbc-vidak.m3u8&skin=1
+#EXTINF:-1 tvg-name="Видеосалон" tvg-logo="https://televizo.live/images/videosalon.png" tvg-chno="154" group-title="RU CHANNELS",Видеосалон
+https://river-3-3121.rtbcdn.ru/hls-vod/eagSRIjqGOcp6pk5aQ_3vA/1795969663/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Витрина ТВ" tvg-logo="https://televizo.live/images/vitrina-tv.png" tvg-chno="155" group-title="RU CHANNELS",Витрина ТВ
+https://cdntvmedia.com/players/playerjs.php?file=https://v4.proofix.ru/vitrina-live/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="Вопросы и ответы" tvg-logo="https://televizo.live/images/Voprosy_i_Otvety.png" tvg-chno="156" group-title="RU CHANNELS",Вопросы и ответы
+https://tvcdnpotok.com/2017/index.m3u8?wmsAuthSign=c8ff907a399d3f16c4e3767181b4d9f0-1795368409-002i71i16i87
+#EXTINF:-1 tvg-name="Детское кино" tvg-logo="https://televizo.live/images/detskoe-kino.png" tvg-chno="157" group-title="RU CHANNELS",Детское кино
+https://cdntvmedia.com/players/playerjs.php?file=https://kino-1.catcast.tv/content/40426/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="Диалоги о рыбалке" tvg-logo="https://televizo.live/images/dialogi-o-rybalke.png" tvg-chno="158" group-title="RU CHANNELS",Диалоги о рыбалке
+https://tvcdnpotok.com/2012/index.m3u8?wmsAuthSign=c6a5c9ec03bb93465a41d1a9a4a39e47-1795368415-002i71i16i87
+#EXTINF:-1 tvg-name="Дикая охота" tvg-logo="https://televizo.live/images/dikaya-okhota.png" tvg-chno="159" group-title="RU CHANNELS",Дикая охота
+https://tvcdnpotok.com/2014/index.m3u8?wmsAuthSign=1e6e142ae78e29df6543fbdbe33edb40-1795368418-002i71i16i87
+#EXTINF:-1 tvg-name="Доктор" tvg-logo="https://televizo.live/images/doktor.png" tvg-chno="160" group-title="RU CHANNELS",Доктор
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1409/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Дом кино" tvg-logo="https://televizo.live/images/dom_kino.png" tvg-chno="161" group-title="RU CHANNELS",Дом кино
+https://tvcdnpotok.com/186/index.m3u8?wmsAuthSign=62aee2561c1c37c1423d6e1bcaf81b11-1795368353-002i71i16i87
+#EXTINF:-1 tvg-name="Дом кино Премиум" tvg-logo="https://televizo.live/images/dom-kino-premium.png" tvg-chno="162" group-title="RU CHANNELS",Дом кино Премиум
+https://tvcdnpotok.com/187/index.m3u8?wmsAuthSign=477ad30ecd3ff85ffb7decefeae6160b-1795368356-002i71i16i87
+#EXTINF:-1 tvg-name="Домашние животные" tvg-logo="https://televizo.live/images/domashnie-zhivotnye.png" tvg-chno="163" group-title="RU CHANNELS",Домашние животные
+https://tvcdnpotok.com/2007/index.m3u8?wmsAuthSign=81947d6d2a2afc1ff107b3ada7b6d202-1795368425-002i71i16i87
+#EXTINF:-1 tvg-name="Домашний" tvg-logo="https://televizo.live/images/domashniy_tv.png" tvg-chno="164" group-title="RU CHANNELS",Домашний
+https://tvcdnpotok.com/561/index.m3u8?wmsAuthSign=4e6ea8f6d6059aeeba876adab2d29d30-1795368362-002i71i16i87
+#EXTINF:-1 tvg-name="Дорама" tvg-logo="https://televizo.live/images/dorama.png" tvg-chno="165" group-title="RU CHANNELS",Дорама
+https://tvcdnpotok.com/562/index.m3u8?wmsAuthSign=e9651b9eb076522c99d023029153a34a-1795368365-002i71i16i87
+#EXTINF:-1 tvg-name="Душевное" tvg-logo="https://televizo.live/images/dushevnoe.png" tvg-chno="166" group-title="RU CHANNELS",Душевное
+https://tvcdnpotok.com/172/index.m3u8?wmsAuthSign=b183c246850d7118d61d1788f4823368-1795368368-002i71i16i87
+#EXTINF:-1 tvg-name="Е ТВ" tvg-logo="https://televizo.live/images/e-tv.png" tvg-chno="167" group-title="RU CHANNELS",Е ТВ
+https://cdntvmedia.com/players/playerjs.php?file=https://live20.bozztv.com/giatvplayout7/ushba44/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="Еврокино" tvg-logo="https://televizo.live/images/evrokino.png" tvg-chno="168" group-title="RU CHANNELS",Еврокино
+https://tvcdnpotok.com/126/index.m3u8?wmsAuthSign=7046079f82affa5f627048c58545adb0-1795368381-002i71i16i87
+#EXTINF:-1 tvg-name="Живая планета" tvg-logo="https://televizo.live/images/zhivaya-planeta.png" tvg-chno="169" group-title="RU CHANNELS",Живая планета
+https://tvcdnpotok.com/555/index.m3u8?wmsAuthSign=28875c8477a1dee5d9d7bed8a24e82aa-1795368431-002i71i16i87
+#EXTINF:-1 tvg-name="Живая природа" tvg-logo="https://televizo.live/images/zhivaya-priroda.png" tvg-chno="170" group-title="RU CHANNELS",Живая природа
+https://tvcdnpotok.com/2025/index.m3u8?wmsAuthSign=e0e47111a6825708e3c4fd103d907fdf-1795368434-002i71i16i87
+#EXTINF:-1 tvg-id="TelekanalZvezda.ru" tvg-name="Звезда" tvg-logo="https://i.imgur.com/c0L0ncA.png" tvg-chno="171" group-title="RU CHANNELS",Звезда
+https://cdntvmedia.com/players/playerjs.php?file=https://tvchannelstream1.tvzvezda.ru/cdn/tvzvezda/playlist.m3u8%20or%20https://tvzvezda.bonus-tv.ru/cdn/tvzvezda/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-name="Здоровое ТВ" tvg-logo="https://televizo.live/images/zdorovoe-tv.png" tvg-chno="172" group-title="RU CHANNELS",Здоровое ТВ
+https://tvcdnpotok.com/2015/index.m3u8?wmsAuthSign=041b312579c35090113c69bda635a518-1795368439-002i71i16i87
+#EXTINF:-1 tvg-name="Знание ТВ" tvg-logo="https://televizo.live/images/znanie-tv.png" tvg-chno="173" group-title="RU CHANNELS",Знание ТВ
+https://river-3-3121.rtbcdn.ru/hls-vod/3DGdR9N88_r0PaRG5jUypw/1795969704/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Иллюзион+" tvg-logo="https://televizo.live/images/illyuzion.png" tvg-chno="174" group-title="RU CHANNELS",Иллюзион+
+https://tvcdnpotok.com/130/index.m3u8?wmsAuthSign=e4bf9768c702b4ce2e149364e4ef9045-1795368401-002i71i16i87
+#EXTINF:-1 tvg-name="История" tvg-logo="https://televizo.live/images/istoriya.png" tvg-chno="175" group-title="RU CHANNELS",История
+https://tvcdnpotok.com/212/index.m3u8?wmsAuthSign=f1b86ae83f14f366af987daa754abab2-1795368447-002i71i16i87
+#EXTINF:-1 tvg-name="Калейдоскоп ТВ" tvg-logo="https://televizo.live/images/kalejdoskop-tv.png" tvg-chno="176" group-title="RU CHANNELS",Калейдоскоп ТВ
+https://cdntvmedia.com/players/playerjs.php?file=https://cdn-01.bonus-tv.ru/Kaleidoskop_edge/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Капитан Фантастика" tvg-logo="https://televizo.live/images/kapitan-fantastika.png" tvg-chno="177" group-title="RU CHANNELS",Капитан Фантастика
+https://tvcdnpotok.com/2044/index.m3u8?wmsAuthSign=948dfe77a4bffe79a155934495a35792-1795368453-002i71i16i87
+#EXTINF:-1 tvg-id="Karusel.ru" tvg-name="Карусель" tvg-logo="https://i.imgur.com/4fFMlVq.png" tvg-chno="178" group-title="RU CHANNELS",Карусель
+https://tvcdnpotok.com/157/index.m3u8?wmsAuthSign=36dbe32f053c69e9d6e9f56e3df023d3-1795368456-002i71i16i87
+#EXTINF:-1 tvg-name="Кинеко" tvg-logo="https://televizo.live/images/kineko.png" tvg-chno="179" group-title="RU CHANNELS",Кинеко
+https://tvcdnpotok.com/2037/index.m3u8?wmsAuthSign=2bfecaa3cbdd1958642b9a6cf6a41da9-1795368459-002i71i16i87
+#EXTINF:-1 tvg-name="Кино 1 International" tvg-logo="https://televizo.live/images/kino-1-international.png" tvg-chno="180" group-title="RU CHANNELS",Кино 1 International
+https://tvcdnpotok.com/516/index.m3u8?wmsAuthSign=13027743ca698c20a07d859dba58e6c8-1795368462-002i71i16i87
+#EXTINF:-1 tvg-name="Кино ТВ" tvg-logo="https://televizo.live/images/kino_tv.png" tvg-chno="181" group-title="RU CHANNELS",Кино ТВ
+https://tvcdnpotok.com/504/index.m3u8?wmsAuthSign=43e71e841378c14f70d850841c6bfdb3-1795368465-002i71i16i87
+#EXTINF:-1 tvg-name="КиноДетектив" tvg-logo="https://televizo.live/images/kinodetektiv.png" tvg-chno="182" group-title="RU CHANNELS",КиноДетектив
+https://cdntvmedia.com/players/playerjs.php?file=https://cityeden.catcast.tv/content/41327/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="КиноКомедия" tvg-logo="https://televizo.live/images/kinokomediya-edem.png" tvg-chno="183" group-title="RU CHANNELS",КиноКомедия
+https://cdntvmedia.com/players/playerjs.php?file=https://cityeden.catcast.tv/content/41331/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="КиноМистика" tvg-logo="https://televizo.live/images/kinomistika.png" tvg-chno="184" group-title="RU CHANNELS",КиноМистика
+https://cdntvmedia.com/players/playerjs.php?file=https://cityeden.catcast.tv/content/40783/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="КиноЭкшен" tvg-logo="https://televizo.live/images/kinoekshen.png" tvg-chno="185" group-title="RU CHANNELS",КиноЭкшен
+https://cdntvmedia.com/players/playerjs.php?file=https://cityeden.catcast.tv/content/41333/index.m3u8&sp=2
+#EXTINF:-1 tvg-name="Кинозал 1" tvg-logo="https://televizo.live/images/kinozal-1.png" tvg-chno="186" group-title="RU CHANNELS",Кинозал 1
+https://tvcdnpotok.com/141/index.m3u8?wmsAuthSign=904ee75d6dbd3b1b776025d8d2d7a2fc-1795368480-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 2" tvg-logo="https://televizo.live/images/kinozal-2.png" tvg-chno="187" group-title="RU CHANNELS",Кинозал 2
+https://tvcdnpotok.com/142/index.m3u8?wmsAuthSign=277aca8a4c6cc075cd8f840266ef1f31-1795368483-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 3" tvg-logo="https://televizo.live/images/kinozal-3.png" tvg-chno="188" group-title="RU CHANNELS",Кинозал 3
+https://tvcdnpotok.com/140/index.m3u8?wmsAuthSign=2464b622c92aa02fd56e2cb51030be7c-1795368486-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 4" tvg-logo="https://televizo.live/images/kinozal-4.png" tvg-chno="189" group-title="RU CHANNELS",Кинозал 4
+https://tvcdnpotok.com/138/index.m3u8?wmsAuthSign=bfacf8e467233525e2d4d26754225924-1795368489-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 5" tvg-logo="https://televizo.live/images/kinozal-5.png" tvg-chno="190" group-title="RU CHANNELS",Кинозал 5
+https://tvcdnpotok.com/137/index.m3u8?wmsAuthSign=b16b9ec68047c51adc0ac5348a772680-1795368492-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 6" tvg-logo="https://televizo.live/images/kinozal-6.png" tvg-chno="191" group-title="RU CHANNELS",Кинозал 6
+https://tvcdnpotok.com/2033/index.m3u8?wmsAuthSign=94446d99ba91baad6bf5de093b15e275-1795368495-002i71i16i87
+#EXTINF:-1 tvg-name="Кинозал 7" tvg-logo="https://televizo.live/images/kinozal-7.png" tvg-chno="192" group-title="RU CHANNELS",Кинозал 7
+https://tvcdnpotok.com/139/index.m3u8?wmsAuthSign=04033c36b8363c0124004f667c67c449-1795368498-002i71i16i87
+#EXTINF:-1 tvg-name="Киноман" tvg-logo="https://televizo.live/images/kinosat.png" tvg-chno="193" group-title="RU CHANNELS",Киноман
+https://tvcdnpotok.com/124/index.m3u8?wmsAuthSign=8f7dd2f592bfff6d12b65b01b3d6534b-1795368457-002i71i16i87
+#EXTINF:-1 tvg-name="Комедийное" tvg-logo="https://televizo.live/images/komedijnoe.png" tvg-chno="194" group-title="RU CHANNELS",Комедийное
+https://tvcdnpotok.com/170/index.m3u8?wmsAuthSign=c4e4954b4c6673e8ab4f4a4b4e23370b-1795368462-002i71i16i87
+#EXTINF:-1 tvg-name="Комедия" tvg-logo="https://televizo.live/images/komediya.png" tvg-chno="195" group-title="RU CHANNELS",Комедия
+https://tvcdnpotok.com/510/index.m3u8?wmsAuthSign=5d8187e4c1521bf814610ca5be37022e-1795368500-002i71i16i87
+#EXTINF:-1 tvg-name="Красная линия" tvg-logo="https://televizo.live/images/krasnaya-liniya.png" tvg-chno="196" group-title="RU CHANNELS",Красная линия
+https://tvcdnpotok.com/239/index.m3u8?wmsAuthSign=9c1ad21fed85a3dff7927d311572ab79-1795368468-002i71i16i87
+#EXTINF:-1 tvg-name="КтоКуда" tvg-logo="https://televizo.live/images/ktokuda.png" tvg-chno="197" group-title="RU CHANNELS",КтоКуда
+https://tvcdnpotok.com/2005/index.m3u8?wmsAuthSign=8db22956b183460febcfdf83f0b3fcf5-1795368503-002i71i16i87
+#EXTINF:-1 tvg-id="RussiaK.ru" tvg-name="Культура" tvg-logo="https://i.imgur.com/S12gaLc.png" tvg-chno="198" group-title="RU CHANNELS",Культура
+https://live.smotrim.ru/vgtrk/0/kultura-hd/index.m3u8
+#EXTINF:-1 tvg-name="Любимое" tvg-logo="https://televizo.live/images/lyubimoe-hd.png" tvg-chno="199" group-title="RU CHANNELS",Любимое
+https://tvcdnpotok.com/236/index.m3u8?wmsAuthSign=37c77e681bfb5368f93b5e7f7ba6bc25-1795368475-002i71i16i87
+#EXTINF:-1 tvg-name="Любимое кино" tvg-logo="https://televizo.live/images/lyubimoe-kino.png" tvg-chno="200" group-title="RU CHANNELS",Любимое кино
+https://tvcdnpotok.com/534/index.m3u8?wmsAuthSign=b3e7f972513e72e78f3261a16a2d7e83-1795368478-002i71i16i87
+#EXTINF:-1 tvg-name="Магнат ТВ" tvg-logo="https://televizo.live/images/magnat-tv.png" tvg-chno="201" group-title="RU CHANNELS",Магнат ТВ
+https://cdntvmedia.com/players/playerjs.php?file=https://s1.tv-nano.com/Magnat/index.fmp4.m3u8&sp=2
+#EXTINF:-1 tvg-id="Match.ru" tvg-name="Матч ТВ Ⓢ" tvg-logo="https://i.imgur.com/kFdooR4.png" tvg-chno="202" group-title="RU CHANNELS",Матч ТВ Ⓢ
+https://zabava-htlive.cdn.ngenix.net/hls/CH_MATCHTV/variant.m3u8
+#EXTINF:-1 tvg-id="RTRPlaneta.ru" tvg-name="Матч! Планета" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/8/85/RTR_Planeta_Europe.png" tvg-chno="203" group-title="RU CHANNELS",Матч! Планета
+https://player.smotrim.ru/iframe/stream/live_id/63251
+#EXTINF:-1 tvg-id="MirBelogorya.ru" tvg-name="Мир" tvg-logo="https://i.imgur.com/CCNAg7R.png" tvg-chno="204" group-title="RU CHANNELS",Мир
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1218/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Мир сериала" tvg-logo="https://televizo.live/images/mir-seriala.png" tvg-chno="205" group-title="RU CHANNELS",Мир сериала
+https://tvcdnpotok.com/589/index.m3u8?wmsAuthSign=1881a1653796021992515cfcfaaf8ecc-1795368511-002i71i16i87
+#EXTINF:-1 tvg-name="Москва 24" tvg-logo="https://televizo.live/images/moskva-24.png" tvg-chno="206" group-title="RU CHANNELS",Москва 24
+https://river-3-3121.rtbcdn.ru/hls-vod/_r0yLLJB4jyjACdNkET7sg/1795969776/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="doverie" tvg-name="Москва Доверие" tvg-logo="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22240%22%20height%3D%22240%22%20viewBox%3D%220%200%20240%20240%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%2310b981%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%230ea5e9%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%22240%22%20height%3D%22240%22%20rx%3D%2248%22%20fill%3D%22%230f172a%22/%3E%3Crect%20x%3D%226%22%20y%3D%226%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%2242%22%20fill%3D%22url%28%23g%29%22%20fill-opacity%3D%220.22%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2254%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f8fafc%22%20font-family%3D%22Inter%2CSegoe%20UI%2Csans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2276%22%20letter-spacing%3D%222%22%3ETV%3C/text%3E%3C/svg%3E" tvg-chno="207" group-title="RU CHANNELS",Москва Доверие
+https://tvcdnpotok.com/2004/index.m3u8?wmsAuthSign=51d073271a116cdb0f7a817399b3ad29-1795368484-002i71i16i87
+#EXTINF:-1 tvg-name="Моя стихия" tvg-logo="https://televizo.live/images/moya-stikhiya.png" tvg-chno="208" group-title="RU CHANNELS",Моя стихия
+https://tvcdnpotok.com/592/index.m3u8?wmsAuthSign=37066c26e67a2cac2fbf514edad62a26-1795368487-002i71i16i87
+#EXTINF:-1 tvg-name="Муз-ТВ" tvg-logo="https://televizo.live/images/muz-tv.png" tvg-chno="209" group-title="RU CHANNELS",Муз-ТВ
+https://cdntvmedia.com/players/playerjs.php?file=https://streaming.skyconnecting.top/live/618.m3u8&sp=2
+#EXTINF:-1 tvg-name="Музыка Первого" tvg-logo="https://televizo.live/images/muzyka-pervogo.png" tvg-chno="210" group-title="RU CHANNELS",Музыка Первого
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1201/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Мульт" tvg-logo="https://televizo.live/images/mult.png" tvg-chno="211" group-title="RU CHANNELS",Мульт
+https://tvcdnpotok.com/206/index.m3u8?wmsAuthSign=2349b70612420f8113bde4bcf4b96774-1795368524-002i71i16i87
+#EXTINF:-1 tvg-name="Мультиландия" tvg-logo="https://televizo.live/images/multilandiya.png" tvg-chno="212" group-title="RU CHANNELS",Мультиландия
+https://tvcdnpotok.com/2045/index.m3u8?wmsAuthSign=a2408d7817b206431a0c10c741f85e7e-1795368498-002i71i16i87
+#EXTINF:-1 tvg-name="Мультимузыка" tvg-logo="https://televizo.live/images/multimuzyka.png" tvg-chno="213" group-title="RU CHANNELS",Мультимузыка
+https://tvcdnpotok.com/513/index.m3u8?wmsAuthSign=1a07b90e3e960c9afc70c45a9f135d6c-1795368527-002i71i16i87
+#EXTINF:-1 tvg-name="НСТ" tvg-logo="https://televizo.live/images/nst_tv.png" tvg-chno="214" group-title="RU CHANNELS",НСТ
+https://tvcdnpotok.com/127/index.m3u8?wmsAuthSign=11a45312dc7062af78e3af19bbbd8360-1795368530-002i71i16i87
+#EXTINF:-1 tvg-name="НТВ" tvg-logo="https://televizo.live/images/ntv-tv.png" tvg-chno="215" group-title="RU CHANNELS",НТВ
+https://tvcdnpotok.com/537/index.m3u8?wmsAuthSign=ca17fc18cde2adf354df8c9a898587fc-1795368533-002i71i16i87
+#EXTINF:-1 tvg-id="Mir.ru" tvg-name="НТВ Мир" tvg-logo="https://i.imgur.com/L2slsbG.png" tvg-chno="216" group-title="RU CHANNELS",НТВ Мир
+https://cdntvmedia.com/players/playerjs.php?file=https://streaming.thestream.cyou/live/213.m3u8&sp=2
+#EXTINF:-1 tvg-name="НТВ Право" tvg-logo="https://televizo.live/images/ntv_pravo.png" tvg-chno="217" group-title="RU CHANNELS",НТВ Право
+https://tvcdnpotok.com/2028/index.m3u8?wmsAuthSign=523220df5a6ac3e947e0e602777f7ad3-1795368539-002i71i16i87
+#EXTINF:-1 tvg-name="НТВ Сериал" tvg-logo="https://televizo.live/images/ntv-serial.png" tvg-chno="218" group-title="RU CHANNELS",НТВ Сериал
+https://tvcdnpotok.com/509/index.m3u8?wmsAuthSign=2b15229f7f7910a300c6de19f5fbb1d6-1795368542-002i71i16i87
+#EXTINF:-1 tvg-name="НТВ Стиль" tvg-logo="https://televizo.live/images/ntv-style.png" tvg-chno="219" group-title="RU CHANNELS",НТВ Стиль
+https://tvcdnpotok.com/2029/index.m3u8?wmsAuthSign=a2564d786797185a90098589120e0b24-1795368545-002i71i16i87
+#EXTINF:-1 tvg-name="НТВ-Хит" tvg-logo="https://televizo.live/images/ntv-khit.png" tvg-chno="220" group-title="RU CHANNELS",НТВ-Хит
+https://tvcdnpotok.com/508/index.m3u8?wmsAuthSign=316f53ca6585fbac146fc50078178555-1795368548-002i71i16i87
+#EXTINF:-1 tvg-name="Наука 2.0" tvg-logo="https://televizo.live/images/nauka.png" tvg-chno="221" group-title="RU CHANNELS",Наука 2.0
+https://tvcdnpotok.com/115/index.m3u8?wmsAuthSign=9c4046af0efd17972cea8a70bc377e16-1795368551-002i71i16i87
+#EXTINF:-1 tvg-name="Наше крутое" tvg-logo="https://televizo.live/images/nashe-krutoe.png" tvg-chno="222" group-title="RU CHANNELS",Наше крутое
+https://tvcdnpotok.com/171/index.m3u8?wmsAuthSign=053ab3a8acb1634aae6d723e3d7599f1-1795368522-002i71i16i87
+#EXTINF:-1 tvg-id="ONT.by" tvg-name="ОНТ" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/%D0%9B%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF_%D1%82%D0%B5%D0%BB%D0%B5%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB%D0%B0_%C2%AB%D0%9E%D0%9D%D0%A2%C2%BB.svg/960px-%D0%9B%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF_%D1%82%D0%B5%D0%BB%D0%B5%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB%D0%B0_%C2%AB%D0%9E%D0%9D%D0%A2%C2%BB.svg.png" tvg-chno="223" group-title="RU CHANNELS",ОНТ
+https://ngtrk.dc.beltelecom.by/ngtrk/smil:ont.smil/playlist.m3u8
+#EXTINF:-1 tvg-name="Океан" tvg-logo="https://televizo.live/images/ocean-tv.png" tvg-chno="224" group-title="RU CHANNELS",Океан
+https://tvcdnpotok.com/2020/index.m3u8?wmsAuthSign=16a5dced9c8f437070ac59700790f73e-1795368525-002i71i16i87
+#EXTINF:-1 tvg-name="Оружие" tvg-logo="https://televizo.live/images/oruzhie.png" tvg-chno="225" group-title="RU CHANNELS",Оружие
+https://cdntvmedia.com/players/playerjs.php?file=https://fs.uplink.kz/oruzhie/mono.m3u8?token=onlinetv2&sp=2
+#EXTINF:-1 tvg-name="Остросюжетное" tvg-logo="https://televizo.live/images/ostrosyuzhetnoe-hd.png" tvg-chno="226" group-title="RU CHANNELS",Остросюжетное
+https://tvcdnpotok.com/578/index.m3u8?wmsAuthSign=d7793460f4dfa40fedf2510c9174364e-1795368554-002i71i16i87
+#EXTINF:-1 tvg-name="Охота и рыбалка" tvg-logo="https://televizo.live/images/okhota-i-rybalka.png" tvg-chno="227" group-title="RU CHANNELS",Охота и рыбалка
+https://tvcdnpotok.com/538/index.m3u8?wmsAuthSign=c3fa3a6646e3af2bfb445bddbfd8a9a7-1795368557-002i71i16i87
+#EXTINF:-1 tvg-name="Первый Космический" tvg-logo="https://televizo.live/images/pervyj-kosmicheskij.png" tvg-chno="228" group-title="RU CHANNELS",Первый Космический
+https://tvcdnpotok.com/2006/index.m3u8?wmsAuthSign=a78bc51c12b3a17c44c4443bb1fd4b53-1795368560-002i71i16i87
+#EXTINF:-1 tvg-name="Первый Крымский" tvg-logo="https://televizo.live/images/pervyj-krymskij.png" tvg-chno="229" group-title="RU CHANNELS",Первый Крымский
+https://tvcdnpotok.com/533/index.m3u8?wmsAuthSign=388cba358c965c6a15e6762e88b89f77-1795368563-002i71i16i87
+#EXTINF:-1 tvg-name="Первый канал" tvg-logo="https://imgs.search.brave.com/hG6RXMNIYzmBbaFKzaUR9azvxwG2WZgGQXynR9YIpmg/rs:fit:0:180:1:0/g:ce/aHR0cHM6Ly9waWMu/cnRiY2RuLnJ1L3R2/LzkzLzE0LzkzMTRl/YWNlYTAwNzUzOTIz/YTlmYTY1YTVmOTdl/NDliLmpwZw" tvg-chno="230" group-title="RU CHANNELS",Первый канал
+https://tvcdnpotok.com/540/index.m3u8?wmsAuthSign=08dc2feddc1db4422389d7fe4366cc9a-1795368567-002i71i16i87
+#EXTINF:-1 tvg-name="Перец ТВ" tvg-logo="https://televizo.live/images/perets-tv.png" tvg-chno="231" group-title="RU CHANNELS",Перец ТВ
+https://river-3-3121.rtbcdn.ru/hls-vod/P2lYijWNJfASaz-_MWgwJg/1795969831/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Победа" tvg-logo="https://televizo.live/images/pobeda.png" tvg-chno="232" group-title="RU CHANNELS",Победа
+https://tvcdnpotok.com/218/index.m3u8?wmsAuthSign=57488362383024addaa0050a8671c7e8-1795368573-002i71i16i87
+#EXTINF:-1 tvg-name="Поехали!" tvg-logo="https://televizo.live/images/poekhali.png" tvg-chno="233" group-title="RU CHANNELS",Поехали!
+https://tvcdnpotok.com/2001/index.m3u8?wmsAuthSign=e9dc523d218b8ff1be61039eb4a9fc82-1795368576-002i71i16i87
+#EXTINF:-1 tvg-name="Премиальное" tvg-logo="https://televizo.live/images/premialnoe-hd.png" tvg-chno="234" group-title="RU CHANNELS",Премиальное
+https://tvcdnpotok.com/134/index.m3u8?wmsAuthSign=5adfb4a7b67be3bb269b76e85b272dc1-1795368579-002i71i16i87
+#EXTINF:-1 tvg-name="Приключения" tvg-logo="https://televizo.live/images/priklyucheniya-hd.png" tvg-chno="235" group-title="RU CHANNELS",Приключения
+https://river-3-3110.rtbcdn.ru/hls-vod/GWDHkGLMdAYYKWAxSXGkLQ/1795969814/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="Friday.ru@SD" tvg-name="Пятница!" tvg-logo="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22240%22%20height%3D%22240%22%20viewBox%3D%220%200%20240%20240%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23f59e0b%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ef4444%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%22240%22%20height%3D%22240%22%20rx%3D%2248%22%20fill%3D%22%230f172a%22/%3E%3Crect%20x%3D%226%22%20y%3D%226%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%2242%22%20fill%3D%22url%28%23g%29%22%20fill-opacity%3D%220.22%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2254%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f8fafc%22%20font-family%3D%22Inter%2CSegoe%20UI%2Csans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2276%22%20letter-spacing%3D%222%22%3ETV%3C/text%3E%3C/svg%3E" tvg-chno="236" group-title="RU CHANNELS",Пятница!
+https://river-3-3121.rtbcdn.ru/hls-vod/XtkdXtkIBKsPEOwaqSMkpg/1795969844/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="5Kanal.ru" tvg-name="Пятый канал Ⓢ" tvg-logo="https://i.imgur.com/u8Q69D9.png" tvg-chno="237" group-title="RU CHANNELS",Пятый канал Ⓢ
+https://tvcdnpotok.com/524/index.m3u8?wmsAuthSign=b2220b10ad77837c611b1993d459392e-1795368587-002i71i16i87
+#EXTINF:-1 tvg-id="RBKTV.ru" tvg-name="РБК" tvg-logo="https://i.imgur.com/P2Qii5B.png" tvg-chno="238" group-title="RU CHANNELS",РБК
+https://bl.rutube.ru/livestream/88f6485ee28d56daf13302ac6fe3d931/index.m3u8?s=H7W1BVvntC_VQLnawdMKJw&e=2092163854&scheme=https
+#EXTINF:-1 tvg-id="MuzTV.ru" tvg-name="РЕН ТВ" tvg-logo="https://i.imgur.com/Ml3qqOF.png" tvg-chno="239" group-title="RU CHANNELS",РЕН ТВ
+https://tvcdnpotok.com/543/index.m3u8?wmsAuthSign=0037cc2bab09584dbb1736dbc25fd0e3-1795368590-002i71i16i87
+#EXTINF:-1 tvg-name="РЖД ТВ" tvg-logo="https://televizo.live/images/rzhd-tv.png" tvg-chno="240" group-title="RU CHANNELS",РЖД ТВ
+https://river-3-3121.rtbcdn.ru/hls-vod/Us14yz4xsBkeZ-PgJ3ugGg/1795969855/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Радость моя" tvg-logo="https://televizo.live/images/radost-moya.png" tvg-chno="241" group-title="RU CHANNELS",Радость моя
+https://tvcdnpotok.com/158/index.m3u8?wmsAuthSign=145f52cbe03a2b3b0ae9f356c47791bc-1795368597-002i71i16i87
+#EXTINF:-1 tvg-name="Романтичное" tvg-logo="https://televizo.live/images/romantichnoe-hd.png" tvg-chno="242" group-title="RU CHANNELS",Романтичное
+https://tvcdnpotok.com/505/index.m3u8?wmsAuthSign=d445b9738a2533acde3017cdf3d75849-1795368570-002i71i16i87
+#EXTINF:-1 tvg-id="Russia1.ru" tvg-name="Россия-1" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Russia-1.svg/960px-Russia-1.svg.png" tvg-chno="243" group-title="RU CHANNELS",Россия-1
+https://tvcdnpotok.com/544/index.m3u8?wmsAuthSign=27f312d78140a4160b128e9300682f1d-1795368600-002i71i16i87
+#EXTINF:-1 tvg-id="Moskva24.ru" tvg-name="Россия-24" tvg-logo="https://i.imgur.com/gXbUMVy.png" tvg-chno="244" group-title="RU CHANNELS",Россия-24
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1021/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="Россия-Культура" tvg-logo="https://televizo.live/images/rossiya-kultura.png" tvg-chno="245" group-title="RU CHANNELS",Россия-Культура
+https://tvcdnpotok.com/579/index.m3u8?wmsAuthSign=e220a6c91e2d09b270ae0ac1490835c9-1795368606-002i71i16i87
+#EXTINF:-1 tvg-name="Русский бестселлер" tvg-logo="https://televizo.live/images/russkij-bestseller.png" tvg-chno="246" group-title="RU CHANNELS",Русский бестселлер
+https://tvcdnpotok.com/135/index.m3u8?wmsAuthSign=8f06d83cc6a56ff49fb1d5df20fa9dd3-1795368609-002i71i16i87
+#EXTINF:-1 tvg-name="Русский детектив" tvg-logo="https://televizo.live/images/russkij-detektiv.png" tvg-chno="247" group-title="RU CHANNELS",Русский детектив
+https://tvcdnpotok.com/136/index.m3u8?wmsAuthSign=d2d5410b13a0cc4db2eab36e095319ba-1795368612-002i71i16i87
+#EXTINF:-1 tvg-name="Русский иллюзион" tvg-logo="https://televizo.live/images/russkij-illyuzion.png" tvg-chno="248" group-title="RU CHANNELS",Русский иллюзион
+https://tvcdnpotok.com/131/index.m3u8?wmsAuthSign=4bb7b41cf85e3fc753551e98bf6e4052-1795368615-002i71i16i87
+#EXTINF:-1 tvg-name="Русский роман" tvg-logo="https://televizo.live/images/russkiy_roman.png" tvg-chno="249" group-title="RU CHANNELS",Русский роман
+https://tvcdnpotok.com/556/index.m3u8?wmsAuthSign=ec6c8aed84e10348c7f7c319a519db48-1795368618-002i71i16i87
+#EXTINF:-1 tvg-name="Рыжий" tvg-logo="https://televizo.live/images/rizhij.png" tvg-chno="250" group-title="RU CHANNELS",Рыжий
+https://cdntvmedia.com/players/playerjs.php?file=https://stream8.cinerama.uz/1407/tracks-v1a1/mono.m3u8&sp=2
+#EXTINF:-1 tvg-name="СТС" tvg-logo="https://televizo.live/images/sts.png" tvg-chno="251" group-title="RU CHANNELS",СТС
+https://tvcdnpotok.com/591/index.m3u8?wmsAuthSign=f94d8ac581dab6e425bae4b6b65bbbed-1795368624-002i71i16i87
+#EXTINF:-1 tvg-name="СТС Kids" tvg-logo="https://televizo.live/images/sts-kids.png" tvg-chno="252" group-title="RU CHANNELS",СТС Kids
+https://tvcdnpotok.com/2046/index.m3u8?wmsAuthSign=145ecc860bf9f755301cfbfa623966f4-1795368626-002i71i16i87
+#EXTINF:-1 tvg-name="СТС Love" tvg-logo="https://televizo.live/images/sts-love.png" tvg-chno="253" group-title="RU CHANNELS",СТС Love
+https://tvcdnpotok.com/123/index.m3u8?wmsAuthSign=168a43a0ba05f8bfd110e31d808a0987-1795368629-002i71i16i87
+#EXTINF:-1 tvg-name="Сарафан" tvg-logo="https://televizo.live/images/sarafan.png" tvg-chno="254" group-title="RU CHANNELS",Сарафан
+https://tvcdnpotok.com/209/index.m3u8?wmsAuthSign=f0984950027a6e33166695fa794fcb74-1795368632-002i71i16i87
+#EXTINF:-1 tvg-name="Смайлик ТВ" tvg-logo="https://televizo.live/images/smajlik-tv.png" tvg-chno="255" group-title="RU CHANNELS",Смайлик ТВ
+https://river-3-379.rtbcdn.ru/hls-vod/g9JRI32yEg1D789rDtvy2w/1795969897/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Совершенно секретно" tvg-logo="https://televizo.live/images/sovershenno-sekretno.png" tvg-chno="256" group-title="RU CHANNELS",Совершенно секретно
+https://tvcdnpotok.com/546/index.m3u8?wmsAuthSign=53f03c80d727b6e990bc74040afdee0b-1795368640-002i71i16i87
+#EXTINF:-1 tvg-name="Соловьев Live" tvg-logo="https://televizo.live/images/solovev-live.png" tvg-chno="257" group-title="RU CHANNELS",Соловьев Live
+https://cdntvmedia.com/players/playerjs.php?file=https://stream.smotrim.ru/hls/solovievlive/playlist_3.m3u8&sp=2
+#EXTINF:-1 tvg-name="Старт ТВ" tvg-logo="https://televizo.live/images/start-tv.png" tvg-chno="258" group-title="RU CHANNELS",Старт ТВ
+https://tvcdnpotok.com/2031/index.m3u8?wmsAuthSign=2962649e6fd311416dc749dd2095e7c6-1795368645-002i71i16i87
+#EXTINF:-1 tvg-id="tvcentr" tvg-name="ТВ Центр" tvg-logo="https://ngrch.github.io/iptv/logos/tv_tsentr.png" tvg-chno="259" group-title="RU CHANNELS",ТВ Центр
+https://tvcdnpotok.com/548/index.m3u8?wmsAuthSign=83e4b9304b42ae52db7058263d8db4f6-1795368648-002i71i16i87
+#EXTINF:-1 tvg-id="TV3.ru@Belarus" tvg-name="ТВ-3" tvg-logo="https://i.imgur.com/jMs4h9F.png" tvg-chno="260" group-title="RU CHANNELS",ТВ-3
+https://river-3-3121.rtbcdn.ru/hls-vod/QUZJX9r6eXXImmUD6qsHBw/1795969912/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="tvoetv-humor" tvg-name="Твоё ТВ" tvg-logo="https://i.postimg.cc/85hJM1pk/Tvoe-TV-Umor.png" tvg-chno="261" group-title="RU CHANNELS",Твоё ТВ
+https://river-3-3121.rtbcdn.ru/hls-vod/qpeJrqh8Li5ZSMH9pu8qFg/1795969916/2822/0x5000cca2b5e847b4/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Телеканал 360" tvg-logo="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22240%22%20height%3D%22240%22%20viewBox%3D%220%200%20240%20240%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%22100%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%23f59e0b%22/%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ef4444%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%22240%22%20height%3D%22240%22%20rx%3D%2248%22%20fill%3D%22%230f172a%22/%3E%3Crect%20x%3D%226%22%20y%3D%226%22%20width%3D%22228%22%20height%3D%22228%22%20rx%3D%2242%22%20fill%3D%22url%28%23g%29%22%20fill-opacity%3D%220.22%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%224%22/%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2254%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20fill%3D%22%23f8fafc%22%20font-family%3D%22Inter%2CSegoe%20UI%2Csans-serif%22%20font-weight%3D%22800%22%20font-size%3D%2276%22%20letter-spacing%3D%222%22%3E3%3C/text%3E%3C/svg%3E" tvg-chno="262" group-title="RU CHANNELS",Телеканал 360
+https://github.com/Free-TV/IPTV/blob/master/playlists/playlist_russia.m3u8
+#EXTINF:-1 tvg-name="Телекафе" tvg-logo="https://televizo.live/images/telekafe.png" tvg-chno="263" group-title="RU CHANNELS",Телекафе
+https://tvcdnpotok.com/2018/index.m3u8?wmsAuthSign=12e912c38d2d9c9c1ced09af6132d57d-1795368659-002i71i16i87
+#EXTINF:-1 tvg-name="Телепутешествия" tvg-logo="https://televizo.live/images/teleputeshestviya-tv.png" tvg-chno="264" group-title="RU CHANNELS",Телепутешествия
+https://mix.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Fmix.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Dteleputeshestviya.m3u8&skin=1
+#EXTINF:-1 tvg-name="Том и Джерри" tvg-logo="https://televizo.live/images/tom-and-jerry.png" tvg-chno="265" group-title="RU CHANNELS",Том и Джерри
+https://tvcdnpotok.com/156/index.m3u8?wmsAuthSign=ae82c610657ff0646e36c3e9003467fc-1795368665-002i71i16i87
+#EXTINF:-1 tvg-name="Точка отрыва" tvg-logo="https://televizo.live/images/tochka-otryva.png" tvg-chno="266" group-title="RU CHANNELS",Точка отрыва
+https://tvcdnpotok.com/517/index.m3u8?wmsAuthSign=37de24fd53cd57fd4e1794ea64515ff7-1795368668-002i71i16i87
+#EXTINF:-1 tvg-name="Турецкие сериалы" tvg-logo="https://televizo.live/images/turetskie-serialy.png" tvg-chno="267" group-title="RU CHANNELS",Турецкие сериалы
+https://tv.cdntvtech.com/3/player/playersjs.html?file=https%3A%2F%2Ftv.cdntvtech.com%2F3%2Flivetv.php%3Fkey%3Ddizi.m3u8&skin=1
+#EXTINF:-1 tvg-name="Уникум" tvg-logo="https://televizo.live/images/unikum.png" tvg-chno="268" group-title="RU CHANNELS",Уникум
+https://tvcdnpotok.com/102/index.m3u8?wmsAuthSign=fd2125d3293421490c68e54ec17f8b91-1795368674-002i71i16i87
+#EXTINF:-1 tvg-name="Фантастика" tvg-logo="https://televizo.live/images/fantastika-hd.png" tvg-chno="269" group-title="RU CHANNELS",Фантастика
+https://tvcdnpotok.com/2044/index.m3u8?wmsAuthSign=fffe61743c018dddb07913e85bf45120-1795368677-002i71i16i87
+#EXTINF:-1 tvg-name="Хит" tvg-logo="https://televizo.live/images/khit-hd.png" tvg-chno="270" group-title="RU CHANNELS",Хит
+https://bl.rutube.ru/livestream/dbcbcba85af66edd5dec95ec5145a568/index.m3u8?s=GvLLZIJEAsHrIbUm8G_yUQ&e=2092173729&scheme=https
+#EXTINF:-1 tvg-name="Че!" tvg-logo="https://ngrch.github.io/iptv/logos/che.png" tvg-chno="271" group-title="RU CHANNELS",Че!
+https://river-3-3121.rtbcdn.ru/hls-vod/9Qt5t7_GyAwt2BF8wfO6YQ/1795969942/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-name="Шансон ТВ" tvg-logo="https://televizo.live/images/shanson-tv.png" tvg-chno="272" group-title="RU CHANNELS",Шансон ТВ
+https://tvcdnpotok.com/165/index.m3u8?wmsAuthSign=62a05d52f88c90dee9801553789f8838-1795368684-002i71i16i87
+#EXTINF:-1 tvg-name="Шокирующее" tvg-logo="https://televizo.live/images/shokiruyushchee.png" tvg-chno="273" group-title="RU CHANNELS",Шокирующее
+https://tvcdnpotok.com/169/index.m3u8?wmsAuthSign=c834e32685bdbccd1edd300f0e33f614-1795368687-002i71i16i87
+#EXTINF:-1 tvg-name="Ювелирочка" tvg-logo="https://televizo.live/images/yuvelirochka.png" tvg-chno="274" group-title="RU CHANNELS",Ювелирочка
+https://cdntvmedia.com/players/playerjs.php?file=https://live-uvelirochka.cdnvideo.ru/uvelirochka/uvelirochka_720p3/playlist.m3u8&sp=2
+#EXTINF:-1 tvg-id="ABCNews.us" tvg-name="ABC" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ABC-2021-LOGO.svg/512px-ABC-2021-LOGO.svg.png" tvg-chno="275" group-title="US CHANNELS",ABC
+https://abcnews-streams.akamaized.net/hls/live/2023560/abcnewshudson1/master.m3u8
+#EXTINF:-1 tvg-id="ACCNetwork.us@SD" tvg-name="ACC Network" tvg-logo="https://i.imgur.com/TpCkbkT.png" tvg-chno="276" group-title="US CHANNELS",ACC Network
+https://raycom-accdn-firetv.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="AccuWeatherNOW.us" tvg-name="AccuWeather" tvg-logo="https://i.imgur.com/M8wbVYK.png" tvg-chno="277" group-title="US CHANNELS",AccuWeather
+https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg00684-accuweather-accuweather-plex/playlist.m3u8
+#EXTINF:-1 tvg-id="AdultSwimLatinAmerica.us@Brazil" tvg-name="Adult Swim" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Adult_Swim_2003_logo.svg/960px-Adult_Swim_2003_logo.svg.png" tvg-chno="278" group-title="US CHANNELS",Adult Swim
+/api/proxy-stream?yt=-1mrwkgH2i0
+#EXTINF:-1 tvg-id="AMC.us@EastHD" tvg-name="AMC" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/AMC_logo_2019.svg/960px-AMC_logo_2019.svg.png" tvg-chno="279" group-title="US CHANNELS",AMC
+http://23.239.31.26:8989/amc/index.m3u8
+#EXTINF:-1 tvg-id="AmericanHeroesChannel.us@SD" tvg-name="American Heroes Channel" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/American_Heroes_Channel_logo.svg/960px-American_Heroes_Channel_logo.svg.png" tvg-chno="280" group-title="US CHANNELS",American Heroes Channel
+http://107.167.7.162:8081/playlist/amhor/playlist.m3u8
+#EXTINF:-1 tvg-id="AnimalPlanetLatinAmerica.us@HD" tvg-name="Animal Planet" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/2018_Animal_Planet_logo.svg/960px-2018_Animal_Planet_logo.svg.png" tvg-chno="281" group-title="US CHANNELS",Animal Planet
+https://tvcdnpotok.com/600/index.m3u8?wmsAuthSign=a08b6ba63d1477a6ed5b20f401ecbc57-1795368692-002i71i16i87
+#EXTINF:-1 tvg-id="BBCAmerica.us@East" tvg-name="BBC America" tvg-logo="https://i.imgur.com/pTiiPz0.png" tvg-chno="282" group-title="US CHANNELS",BBC America
+http://23.239.31.26:8989/bbcamerica/index.m3u8
+#EXTINF:-1 tvg-id="beINSPORTSXTRA.us@SD" tvg-name="beIN Sports Xtra" tvg-logo="https://i.ibb.co/HT49GPmB/XTRA-2.png" tvg-chno="283" group-title="US CHANNELS",beIN Sports Xtra
+https://bein-xtra-bein.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="5ca670f6593a5d78f0e85aed" tvg-name="BET" tvg-logo="https://images.pluto.tv/channels/5ca670f6593a5d78f0e85aed/colorLogoPNG.png" tvg-chno="284" group-title="US CHANNELS",BET
+https://jmp2.uk/plu-5ca670f6593a5d78f0e85aed.m3u8
+#EXTINF:-1 tvg-id="61326275b3c86a00078e4833" tvg-name="BET Her" tvg-logo="https://images.pluto.tv/channels/61326275b3c86a00078e4833/colorLogoPNG_1759340015358.png" tvg-chno="285" group-title="US CHANNELS",BET Her
+https://jmp2.uk/plu-61326275b3c86a00078e4833.m3u8
+#EXTINF:-1 tvg-id="BigTenNetwork.us@SD" tvg-name="Big Ten Network" tvg-logo="https://upload.wikimedia.org/wikipedia/en/thumb/3/39/Big_Ten_Network_Logo.svg/960px-Big_Ten_Network_Logo.svg.png" tvg-chno="286" group-title="US CHANNELS",Big Ten Network
+https://mumbai-edge.smartplaytv.in/Network10/index.m3u8
+#EXTINF:-1 tvg-id="Bloomberg.us" tvg-name="Bloomberg Television" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/New_Bloomberg_Logo.svg/512px-New_Bloomberg_Logo.svg.png" tvg-chno="287" group-title="US CHANNELS",Bloomberg Television
+https://liveproduseast.global.ssl.fastly.net/us/Channel-USTV-AWS-virginia-1/Source-USTV-1000-1_live.m3u8
+#EXTINF:-1 tvg-id="Boomerang.us@SD" tvg-name="Boomerang" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Boomerang_2014_logo.svg/960px-Boomerang_2014_logo.svg.png" tvg-chno="288" group-title="US CHANNELS",Boomerang
+https://github.com/pembriahmad/Iptv-Server/blob/main/boomerang.m3u8
+#EXTINF:-1 tvg-id="6176fd25e83a5f0007a464c9" tvg-name="Bounce TV" tvg-logo="https://images.pluto.tv/channels/6176fd25e83a5f0007a464c9/colorLogoPNG.png" tvg-chno="289" group-title="US CHANNELS",Bounce TV
+https://jmp2.uk/plu-6176fd25e83a5f0007a464c9.m3u8
+#EXTINF:-1 tvg-id="6549310a53fc97000838fcc9" tvg-name="Bravo" tvg-logo="https://images.pluto.tv/channels/6549310a53fc97000838fcc9/colorLogoPNG.png" tvg-chno="290" group-title="US CHANNELS",Bravo
+https://jmp2.uk/plu-6549310a53fc97000838fcc9.m3u8
+#EXTINF:-1 tvg-id="Buzzr.us" tvg-name="Buzzr" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Buzzr_logo.svg/960px-Buzzr_logo.svg.png" tvg-chno="291" group-title="US CHANNELS",Buzzr
+https://jmp2.uk/plu-5812bfbe4ced4f7b601b12e6.m3u8
+#EXTINF:-1 tvg-id="CartoonNetworkLatinAmerica.us@Brazil" tvg-name="Cartoon Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/960px-Cartoon_Network_2010_logo.svg.png" tvg-chno="292" group-title="US CHANNELS",Cartoon Network
+https://tvcdnpotok.com/2042/index.m3u8?wmsAuthSign=e7580bd4f95c2838d385f5ecf3069674-1795368700-002i71i16i87
+#EXTINF:-1 tvg-id="CBSNews.us" tvg-name="CBS" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/CBS_logo.svg/512px-CBS_logo.svg.png" tvg-chno="293" group-title="US CHANNELS",CBS
+https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8
+#EXTINF:-1 tvg-id="5a6b92f6e22a617379789618" tvg-name="CBS News 24/7" tvg-logo="https://images.pluto.tv/channels/5a6b92f6e22a617379789618/colorLogoPNG.png" tvg-chno="294" group-title="US CHANNELS",CBS News 24/7
+https://jmp2.uk/plu-5a6b92f6e22a617379789618.m3u8
+#EXTINF:-1 tvg-id="Charge.us@SD" tvg-name="Charge!" tvg-logo="https://static.wikia.nocookie.net/logopedia/images/0/09/Charge!_network_logo.png/revision/latest/scale-to-width-down/512/" tvg-chno="295" group-title="US CHANNELS",Charge!
+https://fast-channels.sinclairstoryline.com/CHARGE/index.m3u8
+#EXTINF:-1 tvg-id="USAJ3504714A" tvg-name="Cheddar News" tvg-logo="https://tvpnlogopus.samsungcloud.tv/platform/image/sourcelogo/vc/00/02/34/USAJ3504714A_20260610T182304SQUARE.png" tvg-chno="296" group-title="US CHANNELS",Cheddar News
+https://jmp2.uk/stvp-USAJ3504714A
+#EXTINF:-1 tvg-id="Cinemax.us@West" tvg-name="Cinemax" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Cinemax_2016.svg/960px-Cinemax_2016.svg.png" tvg-chno="297" group-title="US CHANNELS",Cinemax
+https://tvcdnpotok.com/104/index.m3u8?wmsAuthSign=1acb0886b07905e08e1e9bc98f939ada-1795368703-002i71i16i87
+#EXTINF:-1 tvg-id="5f68f53eb1e5800007390bf8" tvg-name="CMT" tvg-logo="https://images.pluto.tv/channels/5f68f53eb1e5800007390bf8/colorLogoPNG.png" tvg-chno="298" group-title="US CHANNELS",CMT
+https://jmp2.uk/plu-5f68f53eb1e5800007390bf8.m3u8
+#EXTINF:-1 tvg-id="CNBC.us" tvg-name="CNBC" tvg-logo="https://i.imgur.com/BTasyOy.png" tvg-chno="299" group-title="US CHANNELS",CNBC
+https://www.youtube.com/c/CNBC/live
+#EXTINF:-1 tvg-id="CNN.us" tvg-name="CNN" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/512px-CNN.svg.png" tvg-chno="300" group-title="US CHANNELS",CNN
+https://turnerlive.warnermediacdn.com/hls/live/586495/cnngo/cnn_slate/VIDEO_0_3564000.m3u8
+#EXTINF:-1 tvg-id="5ca671f215a62078d2ec0abf" tvg-name="Comedy Central" tvg-logo="https://images.pluto.tv/channels/5ca671f215a62078d2ec0abf/colorLogoPNG_1785343315719.png" tvg-chno="301" group-title="US CHANNELS",Comedy Central
+https://jmp2.uk/plu-5ca671f215a62078d2ec0abf.m3u8
+#EXTINF:-1 tvg-id="Comet.us@SD" tvg-name="Comet" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Comet_logo.svg/960px-Comet_logo.svg.png" tvg-chno="302" group-title="US CHANNELS",Comet
+https://fast-channels.sinclairstoryline.com/COMET/index.m3u8
+#EXTINF:-1 tvg-id="68bb16916523408b14bac7f8" tvg-name="Cooking Channel" tvg-logo="https://images.pluto.tv/channels/68bb16916523408b14bac7f8/colorLogoPNG_1757969887631.png" tvg-chno="303" group-title="US CHANNELS",Cooking Channel
+https://jmp2.uk/plu-68bb16916523408b14bac7f8.m3u8
+#EXTINF:-1 tvg-id="CourtTV.us" tvg-name="Court TV" tvg-logo="https://graph.facebook.com/courttv/picture?width=200&height=200" tvg-chno="304" group-title="US CHANNELS",Court TV
+https://content.uplynk.com/channel/6c0bd0f94b1d4526a98676e9699a10ef.m3u8
+#EXTINF:-1 tvg-id="400000285" tvg-name="Cowboy Channel" tvg-logo="https://canvas-lb.tubitv.com/opts/u4W97Evqtq5RMQ==/3f8686fa-f328-4833-a8f1-c055986fdcdd/CHgQeDoFMS4xLjlAAQ==" tvg-chno="305" group-title="US CHANNELS",Cowboy Channel
+https://live-manifest.production-public.tubi.io/live/b92c560a-132b-4f67-a993-94794a9ab904/playlist.m3u8
+#EXTINF:-1 tvg-id="DaystarTV.us@SD" tvg-name="Daystar" tvg-logo="https://i.imgur.com/uVdKHMG.png" tvg-chno="306" group-title="US CHANNELS",Daystar
+https://live-mcl.cdn01.net/smarttv/48vy43564/playlist.m3u8
+#EXTINF:-1 tvg-id="DestinationAmerica.us@SD" tvg-name="Destination America" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Destination_America_logo.svg/960px-Destination_America_logo.svg.png" tvg-chno="307" group-title="US CHANNELS",Destination America
+http://23.237.104.106:8080/USA_DESTINATION_AMERICA/index.m3u8
+#EXTINF:-1 tvg-id="6400f731d200410008f9b339" tvg-name="Discovery Channel" tvg-logo="https://images.pluto.tv/channels/6400f731d200410008f9b339/colorLogoPNG_1767979567752.png" tvg-chno="308" group-title="US CHANNELS",Discovery Channel
+https://streaming.aurora.enhanced.live/live/mpc/enl0eG1mLmVncmVzcy5mZDJ2eHI=/out/v1/IT_SIMULCAST/DISCOVERYCHANNEL/CMAF/index.m3u8
+#EXTINF:-1 tvg-id="DiscoveryChannelLatinAmerica.us@Panregional" tvg-name="Discovery Life" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/2019_Discovery_logo.svg/960px-2019_Discovery_logo.svg.png" tvg-chno="309" group-title="US CHANNELS",Discovery Life
+http://45.171.64.30:6060/play/a032/index.m3u8
+#EXTINF:-1 tvg-id="DisneyChannelLatinAmerica.ar@Panregional" tvg-name="Disney Channel" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/f/ff/2024_Disney_Channel_text_logo.svg" tvg-chno="310" group-title="US CHANNELS",Disney Channel
+http://15.204.246.24:8080/DisneyHD/index.m3u8
+#EXTINF:-1 tvg-id="DisneyJunior.us@East" tvg-name="Disney Junior" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/2024_Disney_Jr._Logo.svg/960px-2024_Disney_Jr._Logo.svg.png" tvg-chno="311" group-title="US CHANNELS",Disney Junior
+http://57.128.231.171:8080/277/index.m3u8
+#EXTINF:-1 tvg-id="ESPN2.us@SD" tvg-name="ESPN" tvg-logo="https://i.imgur.com/00tsvjE.png" tvg-chno="312" group-title="US CHANNELS",ESPN
+http://85.237.89.160:9590/usa-s/ESPN-2-HD/index.m3u8
+#EXTINF:-1 tvg-id="ESPN.us@SD" tvg-name="ESPN Classic" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/960px-ESPN_wordmark.svg.png" tvg-chno="313" group-title="US CHANNELS",ESPN Classic
+http://85.237.89.160:9590/usa-s/ESPN-HD/index.m3u8
+#EXTINF:-1 tvg-id="ESPNU.us@HD" tvg-name="ESPNU" tvg-logo="https://i.imgur.com/HiBrysh.png" tvg-chno="314" group-title="US CHANNELS",ESPNU
+http://85.237.89.160:9590/usa-s/ESPN-U-HD/index.m3u8
+#EXTINF:-1 tvg-id="EWTN.us@AsiaPacific" tvg-name="EWTN" tvg-logo="https://play-lh.googleusercontent.com/3716tvZCgzpIt-X1giV8jKwCdC8zwOI4eMUfO_ETWzNX6eGKIi2RiUK9a_fr6BCzjw" tvg-chno="315" group-title="US CHANNELS",EWTN
+https://cdn3.wowza.com/1/QmVNUVhTNTZSS3Uz/YWQ0aHpi/hls/live/playlist.m3u8
+#EXTINF:-1 tvg-id="FOXLiveNow.us" tvg-name="FOX" tvg-logo="https://graph.facebook.com/livenowfox/picture?width=200&height=200" tvg-chno="316" group-title="US CHANNELS",FOX
+https://fox-foxnewsnow-vizio.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="FoxBusinessNetwork.us@SD" tvg-name="Fox Business" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Fox_Business.svg/960px-Fox_Business.svg.png" tvg-chno="317" group-title="US CHANNELS",Fox Business
+https://tvsen6.aynaott.com/foxbusiness/index.m3u8
+#EXTINF:-1 tvg-id="FoxNewsChannel.us@SD" tvg-name="Fox News" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Fox_News_Channel_logo.svg/960px-Fox_News_Channel_logo.svg.png" tvg-chno="318" group-title="US CHANNELS",Fox News
+https://tvsen6.aynaott.com/foxnews/index.m3u8
+#EXTINF:-1 tvg-id="FoxSports1.us@HD" tvg-name="Fox Sports 1" tvg-logo="https://i.imgur.com/O9BapV9.png" tvg-chno="319" group-title="US CHANNELS",Fox Sports 1
+http://85.237.89.160:9590/usa-s/FOX-SPORTS-1/index.m3u8
+#EXTINF:-1 tvg-id="ESPN2LatinAmerica.us@Argentina" tvg-name="Fox Sports 2" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/ESPN2_logo.svg/960px-ESPN2_logo.svg.png" tvg-chno="320" group-title="US CHANNELS",Fox Sports 2
+https://tvcdnpotok.com/569/index.m3u8?wmsAuthSign=6e11c9926cfe6df3fe1d7b5146e553a8-1795368719-002i71i16i87
+#EXTINF:-1 tvg-id="FXLatinAmerica.us@Panregional" tvg-name="FX" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/FX_International_logo.svg/960px-FX_International_logo.svg.png" tvg-chno="321" group-title="US CHANNELS",FX
+http://15.204.246.24:8080/FXHD/index.m3u8
+#EXTINF:-1 tvg-id="GameShowNetwork.us@East" tvg-name="Game Show Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Game_Show_Network_2018.svg/960px-Game_Show_Network_2018.svg.png" tvg-chno="322" group-title="US CHANNELS",Game Show Network
+https://a-cdn.klowdtv.com/live2/gsn_720p/playlist.m3u8
+#EXTINF:-1 tvg-id="GolfChannelLatinAmerica.us@SD" tvg-name="Golf Channel" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Golf_Channel_Logo_2018.png/960px-Golf_Channel_Logo_2018.png" tvg-chno="323" group-title="US CHANNELS",Golf Channel
+http://15.204.246.24:8080/GolfChannelHD/index.m3u8
+#EXTINF:-1 tvg-id="USBC24000213P" tvg-name="Grit" tvg-logo="https://tvpnlogopus.samsungcloud.tv/platform/image/sourcelogo/vc/00/02/34/USBC24000213P_20260421T133713SQUARE.png" tvg-chno="324" group-title="US CHANNELS",Grit
+https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01438-ewscrippscompan-gritxtra-tablo/playlist.m3u8
+#EXTINF:-1 tvg-id="628e685ba3811100070551a8" tvg-name="Hallmark Channel" tvg-logo="https://images.pluto.tv/channels/628e685ba3811100070551a8/colorLogoPNG_1767639054863.png" tvg-chno="325" group-title="US CHANNELS",Hallmark Channel
+https://jmp2.uk/plu-628e685ba3811100070551a8.m3u8
+#EXTINF:-1 tvg-id="613260e4bdb71c00070d63fa" tvg-name="Hallmark Drama" tvg-logo="https://images.pluto.tv/channels/613260e4bdb71c00070d63fa/colorLogoPNG.png" tvg-chno="326" group-title="US CHANNELS",Hallmark Drama
+https://jmp2.uk/plu-613260e4bdb71c00070d63fa.m3u8
+#EXTINF:-1 tvg-id="HBOPlusLatinAmerica.us@SD" tvg-name="HBO" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Logohboplus2019.svg/960px-Logohboplus2019.svg.png" tvg-chno="327" group-title="US CHANNELS",HBO
+http://15.204.246.24:8080/HBOPlusHD/index.m3u8
+#EXTINF:-1 tvg-id="5a4d3a00ad95e4718ae8d8db" tvg-name="HBO Comedy" tvg-logo="https://images.pluto.tv/channels/5a4d3a00ad95e4718ae8d8db/colorLogoPNG_1731836724642.png" tvg-chno="328" group-title="US CHANNELS",HBO Comedy
+https://jmp2.uk/plu-5a4d3a00ad95e4718ae8d8db.m3u8
+#EXTINF:-1 tvg-id="HBOFamilyLatinAmerica.us@SD" tvg-name="HBO Family" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/HBO_Family.svg/960px-HBO_Family.svg.png" tvg-chno="329" group-title="US CHANNELS",HBO Family
+http://45.171.64.30:6060/play/a00k/index.m3u8
+#EXTINF:-1 tvg-id="HBO.us@East" tvg-name="HBO Signature" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/960px-HBO_logo.svg.png" tvg-chno="330" group-title="US CHANNELS",HBO Signature
+https://github.com/poovarasanvasudevan/IPTV-2/blob/master/hbo.m3u8
+#EXTINF:-1 tvg-id="HGTVLatinAmerica.us@Panregional" tvg-name="HGTV" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/HGTV_US_Logo_2015.svg/960px-HGTV_US_Logo_2015.svg.png" tvg-chno="331" group-title="US CHANNELS",HGTV
+http://38.87.224.19:2220/play/a01p/index.m3u8
+#EXTINF:-1 tvg-id="5a4d35dfa5c02e717a234f86" tvg-name="History" tvg-logo="https://images.pluto.tv/channels/5a4d35dfa5c02e717a234f86/colorLogoPNG.png" tvg-chno="332" group-title="US CHANNELS",History
+https://jmp2.uk/plu-5a4d35dfa5c02e717a234f86.m3u8
+#EXTINF:-1 tvg-id="IFC.us@East" tvg-name="IFC" tvg-logo="https://i.imgur.com/bQdkyF9.png" tvg-chno="333" group-title="US CHANNELS",IFC
+http://23.237.104.106:8080/USA_IFC/index.m3u8
+#EXTINF:-1 tvg-id="InvestigationDiscoveryLatinAmerica.us@South" tvg-name="Investigation Discovery" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/InvestigationDiscoveryLogo2020.svg/960px-InvestigationDiscoveryLogo2020.svg.png" tvg-chno="334" group-title="US CHANNELS",Investigation Discovery
+http://38.65.175.84:8000/play/a0ch/index.m3u8
+#EXTINF:-1 tvg-id="Laff.us@SD" tvg-name="Laff" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/LAFF_logo.png/960px-LAFF_logo.png" tvg-chno="335" group-title="US CHANNELS",Laff
+http://tvsen7.aynascope.net/laff/index.m3u8
+#EXTINF:-1 tvg-id="LifetimeLatinAmerica.us@Panregional" tvg-name="Lifetime" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Logo_Lifetime_2020.svg/960px-Logo_Lifetime_2020.svg.png" tvg-chno="336" group-title="US CHANNELS",Lifetime
+http://138.121.15.230:9002/LIFETIME/index.m3u8
+#EXTINF:-1 tvg-id="LLBNHisLight.us@SD" tvg-name="Light TV" tvg-logo="https://i.imgur.com/YkLZjRw.png" tvg-chno="337" group-title="US CHANNELS",Light TV
+https://brightstar-hislight-pull-secure.akamaized.net/brightstarhislight/stream.m3u8
+#EXTINF:-1 tvg-id="63d025db4e83e700086eaa96" tvg-name="LiveNOW from FOX" tvg-logo="https://images.pluto.tv/channels/63d025db4e83e700086eaa96/colorLogoPNG.png" tvg-chno="338" group-title="US CHANNELS",LiveNOW from FOX
+https://jmp2.uk/plu-63d025db4e83e700086eaa96.m3u8
+#EXTINF:-1 tvg-id="USANetwork.us@East" tvg-name="Longhorn Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/USA_Network_logo_%282016%29.svg/960px-USA_Network_logo_%282016%29.svg.png" tvg-chno="339" group-title="US CHANNELS",Longhorn Network
+https://na.linear.zype.com/e0bd0e23-a958-4e43-8164-4f2fef8876a8/fd3614bd-90bf-4530-a277-65ae3a1720c8-zype/live.m3u8
+#EXTINF:-1 tvg-id="USANetworkLatinAmerica.us@Panregional" tvg-name="MLB Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/USA_Network_logo_%282016%29.svg/960px-USA_Network_logo_%282016%29.svg.png" tvg-chno="340" group-title="US CHANNELS",MLB Network
+http://138.121.15.230:9002/USA/index.m3u8
+#EXTINF:-1 tvg-id="MLBStrikeZone.us@SD" tvg-name="MLB Network Strike Zone" tvg-logo="https://i.imgur.com/uMI1ySO.png" tvg-chno="341" group-title="US CHANNELS",MLB Network Strike Zone
+http://23.237.104.106:8080/USA_MLB_STRIKE_ZONE/index.m3u8
+#EXTINF:-1 tvg-id="67ed8f7e443f0671bc2b2368" tvg-name="Movies!" tvg-logo="https://images.pluto.tv/channels/67ed8f7e443f0671bc2b2368/colorLogoPNG_1747069531459.png" tvg-chno="342" group-title="US CHANNELS",Movies!
+https://jmp2.uk/plu-67ed8f7e443f0671bc2b2368.m3u8
+#EXTINF:-1 tvg-id="MTV.us@East" tvg-name="MTV" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/960px-MTV_2021_%28brand_version%29.svg.png" tvg-chno="343" group-title="US CHANNELS",MTV
+https://river-3-3121.rtbcdn.ru/hls-vod/xcmosmUk8jSDDdonLARD5w/1795970009/2964/0x5000c500fa801760/51a4ec7b7e53407fa7815cede717b5a1.mp4.m3u8?i=256x144_240
+#EXTINF:-1 tvg-id="MTVLatinAmerica.us@Panregional" tvg-name="MTV Classic" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/MTV_2021_%28brand_version%29.svg/960px-MTV_2021_%28brand_version%29.svg.png" tvg-chno="344" group-title="US CHANNELS",MTV Classic
+http://15.204.246.24:8080/MTVHD/index.m3u8
+#EXTINF:-1 tvg-id="MTV2.us@East" tvg-name="MTV2" tvg-logo="https://upload.wikimedia.org/wikipedia/en/thumb/2/21/MTV2_logo_2013.svg/960px-MTV2_logo_2013.svg.png" tvg-chno="345" group-title="US CHANNELS",MTV2
+http://198.58.104.90:8989/mtv2/index.m3u8
+#EXTINF:-1 tvg-id="NationalGeographicWild.us@HDEast" tvg-name="Nat Geo Wild" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/National_Geographic_Wild_logo.svg/960px-National_Geographic_Wild_logo.svg.png" tvg-chno="346" group-title="US CHANNELS",Nat Geo Wild
+https://tvcdnpotok.com/564/index.m3u8?wmsAuthSign=025561d1dc4790af601d8632b62fca83-1795368760-002i71i16i87
+#EXTINF:-1 tvg-id="NationalGeographicLatinAmerica.us@Panregional" tvg-name="National Geographic" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/960px-Natgeologo.svg.png" tvg-chno="347" group-title="US CHANNELS",National Geographic
+https://tvcdnpotok.com/601/index.m3u8?wmsAuthSign=bf21c63f00a9b8b4fa2e0363b6890273-1795368764-002i71i16i87
+#EXTINF:-1 tvg-id="6792c30abc03978b9b8bb832" tvg-name="NBA TV" tvg-logo="https://images.pluto.tv/channels/6792c30abc03978b9b8bb832/colorLogoPNG_1747950897785.png" tvg-chno="348" group-title="US CHANNELS",NBA TV
+https://jmp2.uk/plu-6792c30abc03978b9b8bb832.m3u8
+#EXTINF:-1 tvg-id="NBCNewsNOW.us" tvg-name="NBC" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/united-kingdom/nbc-news-now-uk.png" tvg-chno="349" group-title="US CHANNELS",NBC
+https://d1si3n1st4nkgb.cloudfront.net/10502/88896001/hls/master.m3u8?ads.xumo_channelId=88896001
+#EXTINF:-1 tvg-id="5df97894467dfa00091c873c" tvg-name="NBC News Now" tvg-logo="https://images.pluto.tv/channels/5df97894467dfa00091c873c/colorLogoPNG.png" tvg-chno="350" group-title="US CHANNELS",NBC News Now
+https://jmp2.uk/plu-5df97894467dfa00091c873c.m3u8
+#EXTINF:-1 tvg-id="686d8dd294a028da3ac59566" tvg-name="NBC Sports Network" tvg-logo="https://images.pluto.tv/channels/686d8dd294a028da3ac59566/colorLogoPNG_1753992941899.png" tvg-chno="351" group-title="US CHANNELS",NBC Sports Network
+https://jmp2.uk/plu-686d8dd294a028da3ac59566.m3u8
+#EXTINF:-1 tvg-id="Newsmax.us" tvg-name="Newsmax" tvg-logo="https://graph.facebook.com/newsmax/picture?width=200&height=200" tvg-chno="352" group-title="US CHANNELS",Newsmax
+https://nmxlive.akamaized.net/hls/live/529965/Live_1/index.m3u8
+#EXTINF:-1 tvg-id="6a1610bebdf296985fd95603-5fb81660b7ad2d002dcb7335" tvg-name="Newsmax2" tvg-logo="https://provider-static.plex.tv/epg/cms/production/f3f74374-7cf6-4fdc-8056-7ef9e8eb989b/N2_logo_color.png" tvg-chno="353" group-title="US CHANNELS",Newsmax2
+https://jmp2.uk/plu-55b179af994403942f3061d6.m3u8
+#EXTINF:-1 tvg-id="NFLNetwork.us@SD" tvg-name="NFL Network" tvg-logo="https://upload.wikimedia.org/wikipedia/en/thumb/8/8f/NFL_Network_logo.svg/960px-NFL_Network_logo.svg.png" tvg-chno="354" group-title="US CHANNELS",NFL Network
+http://198.58.104.90:8989/nfl/index.m3u8
+#EXTINF:-1 tvg-id="5ced7d5df64be98e07ed47b6" tvg-name="NFL RedZone" tvg-logo="https://images.pluto.tv/channels/5ced7d5df64be98e07ed47b6/colorLogoPNG_1785344058498.png" tvg-chno="355" group-title="US CHANNELS",NFL RedZone
+https://jmp2.uk/plu-5ced7d5df64be98e07ed47b6.m3u8
+#EXTINF:-1 tvg-id="NHLNetwork.us@SD" tvg-name="NHL Network" tvg-logo="https://i.imgur.com/UNZ8bef.png" tvg-chno="356" group-title="US CHANNELS",NHL Network
+https://nhl-firetv.amagi.tv/playlist.m3u8
+#EXTINF:-1 tvg-id="NickJr.us@EastHD" tvg-name="Nick Jr." tvg-logo="https://i.imgur.com/KT4tdQs.png" tvg-chno="357" group-title="US CHANNELS",Nick Jr.
+https://jmp2.uk/plu-67f3eb1c443f0671bc03ece8.m3u8
+#EXTINF:-1 tvg-id="Nickelodeon.us@East" tvg-name="Nickelodeon" tvg-logo="https://i.imgur.com/E84jnP8.png" tvg-chno="358" group-title="US CHANNELS",Nickelodeon
+https://tvcdnpotok.com/155/index.m3u8?wmsAuthSign=de20d9e61cb12602aec0212540bf432e-1795368715-002i71i16i87
+#EXTINF:-1 tvg-id="Nicktoons.us@East" tvg-name="Nicktoons" tvg-logo="https://images.pluto.tv/channels/654ca7f92c1d3300086b608c/colorLogoPNG_1751457678592.png" tvg-chno="359" group-title="US CHANNELS",Nicktoons
+http://41.205.93.154/NICKTOONS/index.m3u8
+#EXTINF:-1 tvg-id="OneAmericaNewsNetwork.us@SD" tvg-name="One America News Network" tvg-logo="https://upload.wikimedia.org/wikipedia/en/thumb/8/84/One_America_News_Network_logo.svg/960px-One_America_News_Network_logo.svg.png" tvg-chno="360" group-title="US CHANNELS",One America News Network
+https://amtvusdvr.tulix.tv/am4abr/index.m3u8
+#EXTINF:-1 tvg-id="OutdoorAmerica.us@SD" tvg-name="Outdoor Channel" tvg-logo="https://i.imgur.com/UKfimFD.png" tvg-chno="361" group-title="US CHANNELS",Outdoor Channel
+https://d1e354daam8g5r.cloudfront.net/playlist.m3u8
+#EXTINF:-1 tvg-id="654930a8346f420008d3b0b8" tvg-name="Oxygen" tvg-logo="https://images.pluto.tv/channels/654930a8346f420008d3b0b8/colorLogoPNG.png" tvg-chno="362" group-title="US CHANNELS",Oxygen
+https://jmp2.uk/plu-654930a8346f420008d3b0b8.m3u8
+#EXTINF:-1 tvg-id="640a64bd73e013000893d4e0" tvg-name="PBS" tvg-logo="https://images.pluto.tv/channels/640a64bd73e013000893d4e0/colorLogoPNG.png" tvg-chno="363" group-title="US CHANNELS",PBS
+https://jmp2.uk/plu-640a64bd73e013000893d4e0.m3u8
+#EXTINF:-1 tvg-id="5d14fd1a252d35decbc4080c" tvg-name="Pop TV" tvg-logo="https://images.pluto.tv/channels/5d14fd1a252d35decbc4080c/colorLogoPNG_1758324914960.png" tvg-chno="364" group-title="US CHANNELS",Pop TV
+https://jmp2.uk/plu-5d14fd1a252d35decbc4080c.m3u8
+#EXTINF:-1 tvg-id="66a7f0a78561260008c177f2" tvg-name="Salem News Channel" tvg-logo="https://images.pluto.tv/channels/66a7f0a78561260008c177f2/colorLogoPNG.png" tvg-chno="365" group-title="US CHANNELS",Salem News Channel
+https://jmp2.uk/plu-66a7f0a78561260008c177f2.m3u8
+#EXTINF:-1 tvg-id="563a970aa1a1f7fe7c9daad7" tvg-name="Science Channel" tvg-logo="https://images.pluto.tv/channels/563a970aa1a1f7fe7c9daad7/colorLogoPNG.png" tvg-chno="366" group-title="US CHANNELS",Science Channel
+https://jmp2.uk/plu-563a970aa1a1f7fe7c9daad7.m3u8
+#EXTINF:-1 tvg-id="SECNetwork.us@SD" tvg-name="SEC Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/SEC_Network_logo.svg/960px-SEC_Network_logo.svg.png" tvg-chno="367" group-title="US CHANNELS",SEC Network
+http://23.237.104.106:8080/USA_SEC_NETWORK/index.m3u8
+#EXTINF:-1 tvg-id="ShowtimeFamilyZone.us@East" tvg-name="Showtime" tvg-logo="https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0b/Showtime_Family_Zone.svg/960px-Showtime_Family_Zone.svg.png" tvg-chno="368" group-title="US CHANNELS",Showtime
+http://23.237.104.106:8080/USA_SHOWTIME_FAMILY/index.m3u8
+#EXTINF:-1 tvg-id="681109b688b9d85d0938c6ba" tvg-name="Showtime 2" tvg-logo="https://images.pluto.tv/channels/681109b688b9d85d0938c6ba/colorLogoPNG_1747434868944.png" tvg-chno="369" group-title="US CHANNELS",Showtime 2
+https://jmp2.uk/plu-681109b688b9d85d0938c6ba.m3u8
+#EXTINF:-1 tvg-id="CameraSmileTV.us@SD" tvg-name="Smile" tvg-logo="https://i.imgur.com/V5h4R83.png" tvg-chno="370" group-title="US CHANNELS",Smile
+https://rpn.bozztv.com/gusa/gusa-camerasmile/index.m3u8
+#EXTINF:-1 tvg-id="5f21ea08007a49000762d349" tvg-name="Smithsonian Channel" tvg-logo="https://images.pluto.tv/channels/5f21ea08007a49000762d349/colorLogoPNG.png" tvg-chno="371" group-title="US CHANNELS",Smithsonian Channel
+https://jmp2.uk/plu-5f21ea08007a49000762d349.m3u8
+#EXTINF:-1 tvg-id="STARTAir.ru@SD" tvg-name="Start TV" tvg-logo="https://images.iptv.rt.ru/images/d60qp8omife4gis72tk0.png" tvg-chno="372" group-title="US CHANNELS",Start TV
+http://176.118.197.101/START_AIR/index.m3u8
+#EXTINF:-1 tvg-id="Starz.us@West" tvg-name="Starz" tvg-logo="https://i.imgur.com/N7oSm4d.png" tvg-chno="373" group-title="US CHANNELS",Starz
+http://23.237.104.106:8080/USA_STARZ_WEST/index.m3u8
+#EXTINF:-1 tvg-id="StarzKidsFamily.us@East" tvg-name="Starz Kids & Family" tvg-logo="https://i.imgur.com/eE9FzEP.png" tvg-chno="374" group-title="US CHANNELS",Starz Kids & Family
+https://github.com/ktpm489/IPTV-2/blob/master/Entertainment/kids.m3u8
+#EXTINF:-1 tvg-id="SYFY.us@East" tvg-name="Syfy" tvg-logo="https://i.imgur.com/4fMWhUE.png" tvg-chno="375" group-title="US CHANNELS",Syfy
+http://23.237.104.106:8080/USA_SYFY/index.m3u8
+#EXTINF:-1 tvg-id="TBSTV.kr@SD" tvg-name="TBS" tvg-logo="https://i.imgur.com/iOnWS6V.png" tvg-chno="376" group-title="US CHANNELS",TBS
+https://cdntv.tbs.seoul.kr/tbs/tbs_tv_web.smil/playlist.m3u8
+#EXTINF:-1 tvg-id="TeenNick.us@East" tvg-name="TeenNick" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/TeenNick_2019_logo.svg/960px-TeenNick_2019_logo.svg.png" tvg-chno="377" group-title="US CHANNELS",TeenNick
+http://92.114.85.87:8010/play/a009/index.m3u8
+#EXTINF:-1 tvg-id="6a1610bebdf296985fd95603-6a90b2b5c0870218305e909b" tvg-name="Tennis Channel" tvg-logo="https://provider-static.plex.tv/epg/cms/production/b0aa99bd-2d1a-4823-a864-7b0fa0d60613/tennis_white_logo.png" tvg-chno="378" group-title="US CHANNELS",Tennis Channel
+https://amg01444-tennischannelth-tennischannelnl-samsungnl-x3dq1.amagi.tv/ts-eu-w1-n2/playlist/amg01444-tennischannelth-tennischannelnl-samsungnl/cb563b16657464909bcd2164d0f162eaa65928d80b6c852a6ab454876da64607d1e3b680fd358b785d9f01de6a1a0a080361cf12ce3407c3c76ad91174204213cfcac9229d86170ab5c60c2c3aab016635837209c0790a79dca93d0d8636ba30453bed086a5a379eae2af5340d98d5158a7a2f95adc369397a52419b4d3eb4f60fe1a6fe5846df72a2b70e5c932e46e6834bcad501ee86dd5983428720f009cf95f98bce1280879831a057e763505a214f48e113e6a18e6d9eea0843fe5d1c047779efb79beb4f328f46312d929dee8a15339753eb5fe74522a90f884afe5fe2d9014dd58869a1bfbc7a9c4538ad8621099921b1d2e8d01949cd4df7a3e0cdd78b9df7545b48dc63cc3b6971f8526b50f6a147c7cc5caeb86814286466419add968afca49f439f318aeae19634414773050e8f49bbd00ab14c842ef89e4273182530dcf299b8bcdde51b4236859fe7890a13ecfbc1edfa1b29c5701e15de69d5550c79df0e9e1d8f37d4952665852a0bca6073ab187db74bf2bc23e2b49bcb327be48e8912a42fd8bc0484a259e9756a0d4bf3d33c4f49494ad5ec4d0424369616b39d99b737412bc4c3e0d28c13340e3212122b8ee1ec7fd2cee82c1c12cd5635735718059909d3268e551f4e7e874683fb513ad146122ce0a62d541539c59fffd2d1a4a32ed248dac1f9363828230aff5421237dd8a28249f75a182f9a3c5bdd88fbdb8b0102dae0bffa88eac32ed784ab9d80/31/640x360_1020800/index.m3u8
+#EXTINF:-1 tvg-id="5cb0cae7a461406ffe3f5213" tvg-name="The Movie Channel" tvg-logo="https://images.pluto.tv/channels/5cb0cae7a461406ffe3f5213/colorLogoPNG.png" tvg-chno="379" group-title="US CHANNELS",The Movie Channel
+https://jmp2.uk/plu-5cb0cae7a461406ffe3f5213.m3u8
+#EXTINF:-1 tvg-id="TLCLatinAmerica.us@Brazil" tvg-name="TLC" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/TLC_Logo.svg/960px-TLC_Logo.svg.png" tvg-chno="380" group-title="US CHANNELS",TLC
+https://s6.hopslan.com/tlcX/index.m3u8
+#EXTINF:-1 tvg-id="TNTLatinAmerica.us@Brazil" tvg-name="TNT" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/TNT_Logo_2016.svg/960px-TNT_Logo_2016.svg.png" tvg-chno="381" group-title="US CHANNELS",TNT
+http://15.204.246.24:8080/TNTHD/index.m3u8
+#EXTINF:-1 tvg-id="TravelTV.bg@SD" tvg-name="Travel Channel" tvg-logo="https://i.imgur.com/5xllfed.png" tvg-chno="382" group-title="US CHANNELS",Travel Channel
+https://5a1178b42cc03.streamlock.net/travel/travel/playlist.m3u8
+#EXTINF:-1 tvg-id="TrueCrimeNetwork.us@WCVBTV" tvg-name="True Crime Network" tvg-logo="https://www.truecrimenetworktv.com/sites/all/themes/jntheme/images/tcnetwork-logo-main.png" tvg-chno="383" group-title="US CHANNELS",True Crime Network
+https://jmp2.uk/stvp-GBBD4100010H1
+#EXTINF:-1 tvg-id="truTV.us@East" tvg-name="truTV" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/TruTV_2014.svg/960px-TruTV_2014.svg.png" tvg-chno="384" group-title="US CHANNELS",truTV
+/api/proxy-stream?yt=KFBNXV3hcmQ
+#EXTINF:-1 tvg-id="USBB3500002FL" tvg-name="TV Land" tvg-logo="https://tvpnlogopus.samsungcloud.tv/platform/image/sourcelogo/vc/00/02/34/USBB3500002FL_20260421T133608SQUARE.png" tvg-chno="385" group-title="US CHANNELS",TV Land
+https://jmp2.uk/stvp-USBB3500002FL
+#EXTINF:-1 tvg-id="FoodNetwork.us@East" tvg-name="USA Network" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Food_Network_New_Logo.png/960px-Food_Network_New_Logo.png" tvg-chno="386" group-title="US CHANNELS",USA Network
+http://23.237.104.106:8080/USA_FOOD_NETWORK/index.m3u8
+#EXTINF:-1 tvg-id="66abefe5d2d50d00082c7d12" tvg-name="VH1" tvg-logo="https://images.pluto.tv/channels/66abefe5d2d50d00082c7d12/colorLogoPNG.png" tvg-chno="387" group-title="US CHANNELS",VH1
+https://jmp2.uk/plu-66abefe5d2d50d00082c7d12.m3u8
+#EXTINF:-1 tvg-id="5e82530945600e0007ca076c" tvg-name="WE tv" tvg-logo="https://images.pluto.tv/channels/5e82530945600e0007ca076c/colorLogoPNG.png" tvg-chno="388" group-title="US CHANNELS",WE tv
+https://jmp2.uk/plu-5e82530945600e0007ca076c.m3u8
+#EXTINF:-1 tvg-id="FoxWeather.us" tvg-name="Weather Channel" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Fox_Weather_logo.svg/500px-Fox_Weather_logo.svg.png" tvg-chno="389" group-title="US CHANNELS",Weather Channel
+https://247wlive.foxweather.com/stream/index.m3u8
+#EXTINF:-1 tvg-id="Willow.us@SD" tvg-name="Willow" tvg-logo="https://cricket.willow.tv/_nuxt/img/willow_blue_logo.362ed8e.png" tvg-chno="390" group-title="US CHANNELS",Willow
+https://d36r8jifhgsk5j.cloudfront.net/Willow_TV.m3u8
