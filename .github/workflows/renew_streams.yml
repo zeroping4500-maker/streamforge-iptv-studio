@@ -2,8 +2,8 @@ name: 24/7 IPTV Stream Auto-Renew & M3U Export
 
 on:
   schedule:
-    # Runs automatically every 5 hours (00:00, 05:00, 10:00, 15:00, 20:00 UTC)
-    - cron: '0 */5 * * *'
+    # Runs automatically every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+    - cron: '0 */4 * * *'
   workflow_dispatch: # Allows one-click manual trigger from GitHub Actions tab
 
 # Grants permissions to commit and push updated playlists back to the repo

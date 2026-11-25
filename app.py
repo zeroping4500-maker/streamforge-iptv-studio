@@ -12,6 +12,7 @@ Fixes & Features:
 
 import concurrent.futures
 import difflib
+import gc
 import io
 import json
 import os
@@ -39,6 +40,12 @@ DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
 
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
+IS_LIGHTWEIGHT_PANEL = bool(
+    os.environ.get("RENDER")
+    or os.environ.get("RENDER_EXTERNAL_URL")
+    or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
+)
+PANEL_MAX_WORKERS = 5 if IS_LIGHTWEIGHT_PANEL else 20
 
 # ---------------------------------------------------------------------------
 # Public Accessible URL & Tunnel State
@@ -2120,58 +2127,139 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
     }
 
 
+CHANNEL_SEARCH_ALIASES = {
+    "pervyj kanal": ["первый канал", "1tv", "channel one"],
+    "первый канал": ["pervyj kanal", "1tv", "channel one"],
+    "1tv": ["первый канал", "pervyj kanal"],
+    "rossiya 1": ["россия 1", "russia 1"],
+    "россия 1": ["rossiya 1", "russia 1"],
+    "rossiya 24": ["россия 24", "russia 24"],
+    "россия 24": ["rossiya 24", "russia 24"],
+    "ntv": ["нтв"],
+    "нтв": ["ntv"],
+    "tnt": ["тнт"],
+    "тнт": ["tnt"],
+    "sts": ["стс", "ctc"],
+    "стс": ["sts", "ctc"],
+    "ren tv": ["рен тв"],
+    "рен тв": ["ren tv"],
+    "match tv": ["матч тв"],
+    "матч тв": ["match tv"],
+    "pyatnica": ["пятница"],
+    "пятница": ["pyatnica"],
+    "domashnij": ["домашний"],
+    "домашний": ["domashnij"],
+    "zvezda": ["звезда"],
+    "звезда": ["zvezda"],
+    "tv3": ["тв3", "tv 3"],
+    "tv 3": ["tv3", "тв3"],
+    "lrt": ["lrt televizija", "lrt lituanica"],
+    "bbc news": ["bbc world news"],
+}
+
+
+def _expand_channel_aliases(query: str) -> list:
+    q_low = re.sub(r"\s+", " ", (query or "").strip().lower())
+    q_clean = re.sub(r"^[a-z]{2,3}\s*[:|\-•]\s*", "", q_low)
+    variants = [query]
+    for k, alts in CHANNEL_SEARCH_ALIASES.items():
+        if q_clean == k or q_low == k:
+            for a in alts:
+                if a not in variants:
+                    variants.append(a)
+    return variants[:3]
+
+
 def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, target_country: str = "", strict: bool = True) -> list:
-    """Finds candidates from indexed providers + live YouTube + RuTube discovery + Televizo live extractor + open web search."""
-    top_candidates = match_stream_candidates_fast(query, tvg_id, limit=limit, target_country=target_country, strict=strict)
-
-    # Concurrently search Televizo Live streams if requested
-    televizo_candidates = []
-    if include_televizo:
-        try:
-            televizo_candidates = search_televizo_live_streams_fast(query, check_live=check_live)
-        except Exception:
-            pass
-
-    # Concurrently search YouTube Live streams if requested
-    yt_candidates = []
-    if include_yt:
-        try:
-            yt_candidates = search_youtube_live_streams_fast(query, target_country=target_country, strict=strict, limit=2, check_live=check_live)
-        except Exception:
-            pass
-
-    # Concurrently search RuTube Live streams if requested
-    rutube_candidates = []
-    if include_rutube:
-        try:
-            rutube_candidates = search_rutube_live_streams_fast(query, target_country=target_country, strict=strict, limit=2, check_live=check_live)
-        except Exception:
-            pass
-
-    # If requested or if few indexed candidates, also query live web & GitHub
-    if (include_web and len(top_candidates) < limit) or len(top_candidates) < 2:
-        try:
-            web_candidates = search_live_web_for_channel_streams(query, limit=3, check_live=False, target_country=target_country)
-            seen_urls = {c["url"] for c in top_candidates}
-            for wc in web_candidates:
-                if wc["url"] not in seen_urls:
-                    seen_urls.add(wc["url"])
-                    top_candidates.append(wc)
-        except Exception:
-            pass
-
-    # Combine candidates: Televizo live + RuTube live + YouTube live + top candidates
-    all_candidates = []
+    """
+    Parallel multi-source channel search across:
+    - 35,000+ indexed FAST/IPTV-Org/Free-TV streams (with alias expansion)
+    - Televizo Live Extractor
+    - YouTube Live discovery
+    - RuTube Live discovery
+    - Open Web & GitHub IPTV M3U discovery
+    """
+    aliases = _expand_channel_aliases(query)
+    top_candidates = []
     seen_urls = set()
-    for c in televizo_candidates + rutube_candidates + yt_candidates + top_candidates:
+
+    def _run_indexed():
+        res = []
+        for q_var in aliases:
+            hits = match_stream_candidates_fast(q_var, tvg_id, limit=limit, target_country=target_country, strict=strict)
+            res.extend(hits)
+        return res
+
+    def _run_televizo():
+        if not include_televizo:
+            return []
+        for q_var in aliases:
+            hits = search_televizo_live_streams_fast(q_var, check_live=check_live)
+            if hits:
+                return hits
+        return []
+
+    def _run_yt():
+        if not include_yt:
+            return []
+        return search_youtube_live_streams_fast(query, target_country=target_country, strict=strict, limit=3, check_live=check_live)
+
+    def _run_rutube():
+        if not include_rutube:
+            return []
+        for q_var in aliases:
+            hits = search_rutube_live_streams_fast(q_var, target_country=target_country, strict=strict, limit=3, check_live=check_live)
+            if hits:
+                return hits
+        return []
+
+    def _run_web():
+        if not include_web:
+            return []
+        return search_live_web_for_channel_streams(query, limit=4, check_live=False, target_country=target_country)
+
+    # Execute all discovery engines in parallel for 3-4x faster search
+    futures = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as search_pool:
+        futures["indexed"] = search_pool.submit(_run_indexed)
+        if include_televizo and not IS_LIGHTWEIGHT_PANEL:
+            futures["televizo"] = search_pool.submit(_run_televizo)
+        elif include_televizo:
+            # On lightweight Render panel, check televizo catalog match first before launching Chromium
+            if find_televizo_channel_info(query):
+                futures["televizo"] = search_pool.submit(_run_televizo)
+        if include_yt:
+            futures["yt"] = search_pool.submit(_run_yt)
+        if include_rutube:
+            futures["rutube"] = search_pool.submit(_run_rutube)
+        if include_web:
+            futures["web"] = search_pool.submit(_run_web)
+
+    def _safe_res(key):
+        fut = futures.get(key)
+        if not fut:
+            return []
+        try:
+            return fut.result(timeout=14) or []
+        except Exception:
+            return []
+
+    televizo_candidates = _safe_res("televizo")
+    rutube_candidates = _safe_res("rutube")
+    yt_candidates = _safe_res("yt")
+    indexed_candidates = _safe_res("indexed")
+    web_candidates = _safe_res("web")
+
+    all_candidates = []
+    for c in televizo_candidates + indexed_candidates + rutube_candidates + yt_candidates + web_candidates:
         if c.get("url") and c["url"] not in seen_urls:
             seen_urls.add(c["url"])
             all_candidates.append(c)
     top_candidates = all_candidates
 
     if check_live and top_candidates:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
-            unprobed = [c for c in top_candidates if c.get("status") == "unknown"]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
+            unprobed = [c for c in top_candidates if c.get("status") == "unknown"][:25]
             if unprobed:
                 probes = list(pool.map(lambda c: probe_stream(c, timeout=3.5), unprobed))
                 for cand, pr in zip(unprobed, probes):
@@ -2187,6 +2275,7 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
             return (status_rank, tier, -conf, lat if lat > 0 else 9999)
 
         top_candidates.sort(key=_rank_key)
+    gc.collect()
     return top_candidates[:limit]
 
 
@@ -2229,9 +2318,9 @@ def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_
         if check_live:
             all_to_probe.extend(cands)
 
-    # Concurrently probe EVERY single candidate stream with 32 workers
+    # Concurrently probe EVERY single candidate stream
     if check_live and all_to_probe:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
             probes = list(pool.map(lambda c: probe_stream(c, timeout=3.5), all_to_probe))
         for cand, pr in zip(all_to_probe, probes):
             cand["status"] = pr["status"]
@@ -2375,7 +2464,7 @@ def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_
                 except Exception:
                     return idx, []
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=(1 if IS_LIGHTWEIGHT_PANEL else 3)) as pool:
                 for idx, tv_hits in pool.map(_fetch_televizo, needs_televizo):
                     if tv_hits:
                         target = per_query_options[idx]["final_options"]
@@ -3426,7 +3515,7 @@ def run_global_health_check(trigger_type: str = "scheduled_2h_fallback_guard", p
         channel_dicts = [dict(r) for r in rows]
         results = []
         # Concurrently probe primary stream URLs
-        with concurrent.futures.ThreadPoolExecutor(max_workers=24) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
             for res in pool.map(lambda c: probe_stream(c, timeout=3.8), channel_dicts):
                 results.append(res)
 
@@ -4693,10 +4782,45 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             for idx, item in enumerate(items):
                 item["_idx"] = idx
             results = []
-            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as pool:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
                 for res in pool.map(lambda c: probe_stream(c, timeout=3.8), items[:200]):
                     results.append(res)
+            gc.collect()
             self.send_json({"results": results})
+            return
+
+        # Offload & Sync with GitHub Actions
+        if path == "/api/github/sync-db":
+            sync_db_from_github_raw()
+            init_db()
+            self.send_json({"ok": True, "message": "Synced latest database from GitHub Actions"})
+            return
+
+        if path == "/api/github/trigger-renew":
+            gh_token = os.environ.get("GITHUB_TOKEN", "").strip()
+            if not gh_token:
+                self.send_json({
+                    "ok": False,
+                    "error": "GITHUB_TOKEN env var not set on Render. Trigger manually in GitHub Actions tab or add GITHUB_TOKEN."
+                }, 400)
+                return
+            try:
+                api_url = "https://api.github.com/repos/zeroping4500-maker/streamforge-iptv-studio/actions/workflows/renew_streams.yml/dispatches"
+                req = urllib.request.Request(
+                    api_url,
+                    data=json.dumps({"ref": "main"}).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {gh_token}",
+                        "Accept": "application/vnd.github+json",
+                        "User-Agent": "StreamForgePanel/1.0",
+                        "Content-Type": "application/json",
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    self.send_json({"ok": True, "status": resp.getcode(), "message": "GitHub Actions 7GB renewal workflow triggered!"})
+            except Exception as e:
+                self.send_json({"ok": False, "error": str(e)}, 500)
             return
 
         # IPTV Xtream Codes Login & Inspect
@@ -4956,7 +5080,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 for idx, item in enumerate(need_probe):
                     item["_idx"] = idx
                 if need_probe:
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as pool:
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
                         probes = list(pool.map(lambda c: probe_stream(c, timeout=3.5), need_probe[:150]))
                     for item, pr in zip(need_probe[:150], probes):
                         item["status"] = pr["status"]
@@ -5067,7 +5191,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
 
                 channel_dicts = [dict(r) for r in rows]
                 results = []
-                with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
                     for res in pool.map(lambda c: probe_stream(c, timeout=4.0), channel_dicts):
                         results.append(res)
 
