@@ -1999,8 +1999,9 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                 streams.sort(
                     key=lambda s: (
                         200 if ("tvcdnpotok" in s and "wmsAuthSign" not in s) else
+                        150 if ("cdntvtech" in s or "cdntvmedia" in s) else
                         100 if "tvcdnpotok" in s else
-                        (50 if "index.m3u8" in s else 10)
+                        (50 if ("index.m3u8" in s and "rtbcdn.ru" not in s) else (5 if "rtbcdn.ru" in s else 10))
                     ),
                     reverse=True,
                 )
