@@ -1948,14 +1948,31 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
 
             page.route("**/*", _filter_route)
 
-            def _capture_url(u: str):
-                if ".m3u8" in u.lower():
-                    if not any(ad in u.lower() for ad in ad_domains):
-                        if u not in streams:
-                            streams.append(u)
+            def _capture_url(u: str, content_type: str = ""):
+                u_low = u.lower()
+                if any(ad in u_low for ad in ad_domains):
+                    return
+                parsed_u = urllib.parse.urlparse(u_low)
+                path_only = parsed_u.path or ""
+                # Never capture HTML player wrapper pages (e.g. playersjs.html?file=...m3u8) or static assets
+                if path_only.endswith((".html", ".htm", ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".woff", ".woff2", ".ico")):
+                    return
+                is_hls_ct = "mpegurl" in (content_type or "").lower()
+                is_hls_url = ".m3u8" in path_only or ("livetv.php" in path_only and ".m3u8" in u_low) or ".m3u8" in u_low
+                if is_hls_ct or is_hls_url:
+                    if u not in streams:
+                        streams.append(u)
+
+            def _on_resp(resp):
+                try:
+                    ct = resp.headers.get("content-type", "")
+                    if 200 <= resp.status < 400:
+                        _capture_url(resp.url, ct)
+                except Exception:
+                    pass
 
             page.on("request", lambda req: _capture_url(req.url))
-            page.on("response", lambda resp: _capture_url(resp.url))
+            page.on("response", _on_resp)
 
             t0 = time.time()
             page.goto(page_url, wait_until="domcontentloaded", timeout=timeout_sec * 1000)
@@ -1987,9 +2004,15 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                     ),
                     reverse=True,
                 )
+                best_u = streams[0]
+                ref_hdr = ""
+                if "cdntvtech" in best_u.lower():
+                    pu = urllib.parse.urlparse(best_u)
+                    ref_hdr = f"{pu.scheme}://{pu.netloc}/"
                 return {
                     "found": True,
-                    "url": streams[0],
+                    "url": best_u,
+                    "referrer": ref_hdr,
                     "all_urls": streams,
                     "page": page_url,
                     "name": ch_info.get("name", page_or_name),
@@ -2080,14 +2103,15 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                 res = extract_televizo_stream_sync(ch["name"], timeout_sec=10)
                 if res.get("found") and res.get("url"):
                     fresh_url = res["url"]
+                    fresh_ref = res.get("referrer") or ch.get("referrer") or ""
                     with get_db() as conn:
                         conn.execute(
                             """
                             UPDATE channels
-                            SET url = ?, status = 'online', latency_ms = 180, last_checked_at = ?, fail_count = 0, last_error = ''
+                            SET url = ?, referrer = ?, status = 'online', latency_ms = 180, last_checked_at = ?, fail_count = 0, last_error = ''
                             WHERE id = ?
                             """,
-                            (fresh_url, now, ch["id"])
+                            (fresh_url, fresh_ref, now, ch["id"])
                         )
                         pid = ch.get("playlist_id")
                         if pid and pid not in touched_playlists:
@@ -4026,6 +4050,9 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 "User-Agent": "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) StreamForge/4.0",
                 "Accept": "*/*",
             }
+            if "cdntvtech" in target_url.lower():
+                pu = urllib.parse.urlparse(target_url)
+                req_headers["Referer"] = f"{pu.scheme}://{pu.netloc}/"
             range_hdr = self.headers.get("Range")
             if range_hdr:
                 req_headers["Range"] = range_hdr
