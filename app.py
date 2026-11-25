@@ -3950,6 +3950,18 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+
+    def copyfile(self, source, outputfile):
+        try:
+            super().copyfile(source, outputfile)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def send_json(self, data, status=200):
         try:
             raw = json.dumps(data).encode("utf-8")
@@ -4022,15 +4034,17 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=5.0) as resp:
                 status_code = resp.getcode()
                 content_type = resp.headers.get("Content-Type", "")
-                body = resp.read()
+                first_chunk = resp.read(65536)
                 is_m3u8 = (
-                    body.startswith(b"#EXTM3U")
+                    first_chunk.lstrip().startswith(b"#EXTM3U")
                     or "mpegurl" in content_type.lower()
                     or target_url.lower().endswith(".m3u8")
                     or "application/x-mpegurl" in content_type.lower()
                 )
 
                 if is_m3u8:
+                    rest = resp.read(2 * 1024 * 1024)
+                    body = first_chunk + rest
                     text = body.decode("utf-8", errors="replace")
                     lines = text.splitlines()
                     rewritten = []
@@ -4062,18 +4076,27 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(output_bytes)
                 else:
+                    # Stream binary video chunks directly without buffering entire stream in RAM
                     self.send_response(status_code)
                     if content_type:
                         self.send_header("Content-Type", content_type)
                     else:
                         self.send_header("Content-Type", "video/mp2t")
-                    self.send_header("Content-Length", str(len(body)))
+                    remote_cl = resp.headers.get("Content-Length")
+                    if remote_cl:
+                        self.send_header("Content-Length", remote_cl)
                     self.send_header("Access-Control-Allow-Origin", "*")
                     self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
                     self.send_header("Access-Control-Allow-Headers", "*")
                     self.send_header("Cache-Control", "public, max-age=3600")
                     self.end_headers()
-                    self.wfile.write(body)
+                    if first_chunk:
+                        self.wfile.write(first_chunk)
+                    while True:
+                        chunk = resp.read(32768)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
         except (BrokenPipeError, ConnectionResetError):
             return
         except urllib.error.HTTPError as e:
