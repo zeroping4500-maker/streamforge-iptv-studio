@@ -1937,14 +1937,17 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
             page = context.new_page()
 
             def _filter_route(route):
-                u = route.request.url.lower()
-                if ".m3u8" in u:
+                try:
+                    u = route.request.url.lower()
+                    if ".m3u8" in u:
+                        route.continue_()
+                        return
+                    if route.request.resource_type in ("image", "font"):
+                        route.abort()
+                        return
                     route.continue_()
-                    return
-                if route.request.resource_type in ("image", "font"):
-                    route.abort()
-                    return
-                route.continue_()
+                except Exception:
+                    pass
 
             page.route("**/*", _filter_route)
 
@@ -1991,6 +1994,10 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                     except Exception:
                         pass
 
+            try:
+                page.unroute_all(behavior="ignoreErrors")
+            except Exception:
+                pass
             context.close()
             browser.close()
             elapsed = round(time.time() - t0, 2)
