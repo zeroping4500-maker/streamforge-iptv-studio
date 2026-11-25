@@ -4862,6 +4862,108 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             self.send_json(res)
             return
 
+        # Import all 332 channels from televizo_catalog.json into target playlist (with deduplication)
+        if path == "/api/televizo/import-all":
+            pid = (body.get("playlist_id") or "").strip()
+            catalog = get_televizo_catalog()
+            if not catalog:
+                self.send_json({"error": "Televizo catalog is empty"}, 404)
+                return
+
+            now = int(time.time())
+            added = 0
+            skipped = 0
+            with get_db() as conn:
+                if not pid:
+                    existing_pl = conn.execute(
+                        "SELECT id FROM playlists WHERE LOWER(name) = 'televizo live' LIMIT 1"
+                    ).fetchone()
+                    if existing_pl:
+                        pid = existing_pl["id"]
+                    else:
+                        pid = str(uuid.uuid4())[:8]
+                        conn.execute(
+                            "INSERT INTO playlists (id, name, description, epg_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                            (pid, "Televizo Live", "All channels imported from televizo.live", "", now, now),
+                        )
+
+                existing_rows = conn.execute(
+                    "SELECT name, url FROM channels WHERE playlist_id = ?", (pid,)
+                ).fetchall()
+                existing_names = {_clean_channel_for_televizo(r["name"]) for r in existing_rows}
+                existing_urls = {r["url"] for r in existing_rows}
+                max_pos_row = conn.execute(
+                    "SELECT COALESCE(MAX(position), -1) as mp FROM channels WHERE playlist_id = ?", (pid,)
+                ).fetchone()
+                pos = (max_pos_row["mp"] if max_pos_row else -1) + 1
+
+                for item in catalog:
+                    cname = (item.get("name") or "").strip()
+                    if not cname:
+                        continue
+                    norm_c = _clean_channel_for_televizo(cname)
+                    all_m3u8 = [
+                        u for u in (item.get("all_m3u8") or [])
+                        if isinstance(u, str) and u.startswith("http") and ".html" not in u.lower()
+                    ]
+                    best_u = item.get("best_m3u8") or ""
+                    if best_u and best_u.startswith("http") and best_u not in all_m3u8:
+                        all_m3u8.append(best_u)
+                    # Prefer tvcdnpotok / cdntvtech / cdntvmedia over rtbcdn
+                    all_m3u8.sort(
+                        key=lambda s: (
+                            200 if ("tvcdnpotok" in s and "wmsAuthSign" not in s) else
+                            150 if ("cdntvtech" in s or "cdntvmedia" in s) else
+                            100 if "tvcdnpotok" in s else
+                            (50 if "rtbcdn.ru" not in s else 5)
+                        ),
+                        reverse=True,
+                    )
+                    primary_url = all_m3u8[0] if all_m3u8 else (item.get("page") or "")
+                    if not primary_url or norm_c in existing_names or primary_url in existing_urls:
+                        skipped += 1
+                        continue
+
+                    ref_hdr = ""
+                    if "cdntvtech" in primary_url.lower():
+                        pu = urllib.parse.urlparse(primary_url)
+                        ref_hdr = f"{pu.scheme}://{pu.netloc}/"
+
+                    cid = str(uuid.uuid4())[:8]
+                    logo = (item.get("logo") or "").strip() or fast_lookup_logo(cname)
+                    cat = (item.get("category") or "Televizo Live").strip()
+                    conn.execute(
+                        """
+                        INSERT INTO channels (id, playlist_id, name, url, logo, category, tvg_id, tvg_name, chno, user_agent, referrer, status, latency_ms, last_checked_at, enabled, position)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', ?, 'unknown', 0, 0, 1, ?)
+                        """,
+                        (cid, pid, cname, primary_url, logo, cat, "", cname, str(pos + 1), ref_hdr, pos),
+                    )
+                    for s_idx, s_url in enumerate(all_m3u8[:4], 1):
+                        conn.execute(
+                            """
+                            INSERT INTO channel_sources (id, channel_id, name, url, source_name, quality, priority, confidence, last_checked_at)
+                            VALUES (?, ?, ?, ?, 'Televizo Catalog', 'HD', ?, 95, ?)
+                            """,
+                            (str(uuid.uuid4())[:8], cid, cname, s_url, s_idx, now),
+                        )
+                    existing_names.add(norm_c)
+                    existing_urls.add(primary_url)
+                    pos += 1
+                    added += 1
+
+                touch_playlist(conn, pid)
+
+            self.send_json({
+                "ok": True,
+                "playlist_id": pid,
+                "added": added,
+                "skipped": skipped,
+                "total_catalog": len(catalog),
+                "message": f"Loaded {added} Televizo channels ({skipped} already in playlist)!",
+            })
+            return
+
         # Auto-sync/refresh all Televizo channels in a playlist (or across all playlists) with fresh tokens
         if path == "/api/televizo/sync-playlist":
             pid = body.get("playlist_id")

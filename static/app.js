@@ -3906,6 +3906,31 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Sync Televizo Live Streams Toolbar Button
+  const btnLoadAllTelevizo = document.getElementById('btnLoadAllTelevizo');
+  if (btnLoadAllTelevizo) {
+    btnLoadAllTelevizo.addEventListener('click', async () => {
+      if (!state.currentPlaylistId) {
+        showToast('Select or create a playlist first');
+        return;
+      }
+      btnLoadAllTelevizo.disabled = true;
+      btnLoadAllTelevizo.textContent = '📡 Loading Televizo...';
+      try {
+        const res = await api('/api/televizo/import-all', {
+          method: 'POST',
+          body: JSON.stringify({ playlist_id: state.currentPlaylistId }),
+        });
+        showToast(`📡 ${res.message || `Loaded ${res.added} Televizo channels!`}`);
+        await loadPlaylists(state.currentPlaylistId);
+      } catch (err) {
+        showToast(`❌ Failed to load Televizo channels: ${err.message}`);
+      } finally {
+        btnLoadAllTelevizo.disabled = false;
+        btnLoadAllTelevizo.innerHTML = '<span>📡 Load All Televizo</span>';
+      }
+    });
+  }
+
   const btnSyncTelevizo = document.getElementById('btnSyncTelevizoStreams');
   if (btnSyncTelevizo) {
     btnSyncTelevizo.addEventListener('click', () => syncTelevizoPlaylist(btnSyncTelevizo));
