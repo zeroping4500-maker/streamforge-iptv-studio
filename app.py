@@ -1918,7 +1918,7 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
     if not page_url:
         return {"found": False, "error": f"No televizo.live page found for '{page_or_name}'"}
 
-    ad_domains = ["bl.rutube.ru/route", "rtbcdn.ru/user/"]
+    ad_domains = ["bl.rutube.ru/route", "rtbcdn.ru", "/hls-vod/", "adfinity", "rutube.ru/play/slim"]
     streams = []
 
     try:
@@ -1996,19 +1996,30 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                         200 if ("tvcdnpotok" in s and "wmsAuthSign" not in s) else
                         150 if ("cdntvtech" in s or "cdntvmedia" in s) else
                         100 if "tvcdnpotok" in s else
-                        (50 if ("index.m3u8" in s and "rtbcdn.ru" not in s) else (5 if "rtbcdn.ru" in s else 10))
+                        (50 if "index.m3u8" in s else 10)
                     ),
                     reverse=True,
                 )
+                # Verify which captured URL actually probes online (skipping any 404/410)
                 best_u = streams[0]
-                ref_hdr = ""
-                if "cdntvtech" in best_u.lower():
+                best_ref = ""
+                for cand_u in streams[:4]:
+                    cand_ref = ""
+                    if "cdntvtech" in cand_u.lower():
+                        pu = urllib.parse.urlparse(cand_u)
+                        cand_ref = f"{pu.scheme}://{pu.netloc}/"
+                    pr = probe_stream({"url": cand_u, "referrer": cand_ref}, timeout=3.5)
+                    if pr["status"] == "online":
+                        best_u = cand_u
+                        best_ref = cand_ref
+                        break
+                if not best_ref and "cdntvtech" in best_u.lower():
                     pu = urllib.parse.urlparse(best_u)
-                    ref_hdr = f"{pu.scheme}://{pu.netloc}/"
+                    best_ref = f"{pu.scheme}://{pu.netloc}/"
                 return {
                     "found": True,
                     "url": best_u,
-                    "referrer": ref_hdr,
+                    "referrer": best_ref,
                     "all_urls": streams,
                     "page": page_url,
                     "name": ch_info.get("name", page_or_name),
@@ -2127,9 +2138,27 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
             update_task_progress("televizo_sync", True, idx - 1, total_items, ch_name, renewed_count, failed_count, f"Extracting {ch_name} ({idx}/{total_items})...")
             try:
                 res = extract_televizo_stream_sync(ch_name, timeout_sec=10)
-                if res.get("found") and res.get("url"):
-                    fresh_url = res["url"]
-                    fresh_ref = res.get("referrer") or ch.get("referrer") or ""
+                fresh_url = res.get("url") if res.get("found") else ""
+                fresh_ref = res.get("referrer") or ch.get("referrer") or ""
+                source_label = "Televizo Live Extractor"
+
+                # Verify extracted stream isn't returning 404/410; if dead, fall back to multi-source search
+                if fresh_url:
+                    pr_check = probe_stream({"url": fresh_url, "referrer": fresh_ref}, timeout=3.5)
+                    if pr_check["status"] != "online":
+                        fresh_url = ""
+
+                if not fresh_url:
+                    alt_cands = find_stream_sources_by_name(
+                        ch_name, limit=4, check_live=True, include_televizo=False, include_web=False
+                    )
+                    online_alts = [c for c in alt_cands if c.get("status") == "online" and c.get("url")]
+                    if online_alts:
+                        fresh_url = online_alts[0]["url"]
+                        fresh_ref = online_alts[0].get("referrer", "")
+                        source_label = online_alts[0].get("source", "Auto-Fallback")
+
+                if fresh_url:
                     with get_db() as conn:
                         conn.execute(
                             """
@@ -2147,7 +2176,7 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                         channel_id=ch["id"],
                         name=ch_name,
                         url=fresh_url,
-                        source_name="Televizo Live Extractor",
+                        source_name=source_label,
                         quality="HD",
                         priority=1,
                         confidence=100
@@ -4886,10 +4915,10 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     norm_c = _clean_channel_for_televizo(cname)
                     all_m3u8 = [
                         u for u in (item.get("all_m3u8") or [])
-                        if isinstance(u, str) and u.startswith("http") and ".html" not in u.lower()
+                        if isinstance(u, str) and u.startswith("http") and ".html" not in u.lower() and "rtbcdn.ru" not in u.lower() and "/hls-vod/" not in u.lower()
                     ]
                     best_u = item.get("best_m3u8") or ""
-                    if best_u and best_u.startswith("http") and best_u not in all_m3u8:
+                    if best_u and best_u.startswith("http") and "rtbcdn.ru" not in best_u.lower() and "/hls-vod/" not in best_u.lower() and best_u not in all_m3u8:
                         all_m3u8.append(best_u)
                     # Prefer tvcdnpotok / cdntvtech / cdntvmedia over rtbcdn
                     all_m3u8.sort(
