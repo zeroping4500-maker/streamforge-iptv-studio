@@ -1799,6 +1799,65 @@ async function extractTelevizoForModalChannel() {
   }
 }
 
+let _progressPollTimer = null;
+
+function renderProgressOverlay(taskKey, data) {
+  const banner = document.getElementById('globalProgressBanner');
+  if (!banner) return;
+  const labels = {
+    televizo_sync: '📺 Televizo Stream Sync',
+    bulk_search: '🔎 Multi-Source Channel Search',
+    fallback_guard: '🛡️ 2-Hour Fallback Guard',
+  };
+  const titleEl = document.getElementById('gpTitle');
+  const pctEl = document.getElementById('gpPercent');
+  const barEl = document.getElementById('gpBar');
+  const detailEl = document.getElementById('gpDetail');
+
+  banner.classList.remove('hidden');
+  if (titleEl) titleEl.textContent = labels[taskKey] || '🔄 Processing...';
+  const pct = data.percent || 0;
+  if (pctEl) pctEl.textContent = `${pct}% (${data.current || 0}/${data.total || 0})`;
+  if (barEl) barEl.style.width = `${pct}%`;
+  if (detailEl) detailEl.textContent = data.message || data.current_item || 'Working...';
+}
+
+function startProgressPolling(taskKey) {
+  if (_progressPollTimer) clearInterval(_progressPollTimer);
+  renderProgressOverlay(taskKey, { active: true, current: 0, total: 0, percent: 5, message: 'Starting...' });
+  _progressPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/api/progress').then((r) => r.json());
+      const prog = res.progress || {};
+      const item = prog[taskKey];
+      if (!item) return;
+      renderProgressOverlay(taskKey, item);
+      if (!item.active && item.updated_at > 0) {
+        clearInterval(_progressPollTimer);
+        _progressPollTimer = null;
+        setTimeout(() => {
+          const b = document.getElementById('globalProgressBanner');
+          if (b) b.classList.add('hidden');
+          if (taskKey === 'televizo_sync' && state.currentPlaylistId) {
+            loadPlaylists(state.currentPlaylistId);
+          }
+        }, 2800);
+      }
+    } catch (_) {}
+  }, 800);
+}
+
+function stopProgressPolling() {
+  if (_progressPollTimer) {
+    clearInterval(_progressPollTimer);
+    _progressPollTimer = null;
+  }
+  setTimeout(() => {
+    const b = document.getElementById('globalProgressBanner');
+    if (b) b.classList.add('hidden');
+  }, 2000);
+}
+
 async function syncTelevizoPlaylist(btnEl) {
   if (!state.currentPlaylistId) {
     showToast('Select a playlist first');
@@ -1809,17 +1868,19 @@ async function syncTelevizoPlaylist(btnEl) {
     btnEl.textContent = '📺 Syncing Televizo...';
   }
   showToast('📺 Connecting to televizo.live & extracting fresh tokens for matching channels...');
+  startProgressPolling('televizo_sync');
   try {
     const res = await api('/api/televizo/sync-playlist', {
       method: 'POST',
       body: JSON.stringify({ playlist_id: state.currentPlaylistId }),
     });
-    showToast(`🎉 Televizo sync complete: Updated ${res.updated} channels (${res.matched} matched in catalog)!`);
+    showToast(`🎉 ${res.message || `Televizo sync started for ${res.matched || 0} channels!`}`);
     await loadPlaylists(state.currentPlaylistId);
     if (!document.getElementById('brokenChannelsModal').classList.contains('hidden')) {
       await refreshBrokenChannelsModal();
     }
   } catch (err) {
+    stopProgressPolling();
     showToast(`❌ Televizo sync failed: ${err.message}`);
   } finally {
     if (btnEl) {
@@ -2792,12 +2853,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('btnRunBulkSourceSearch');
     btn.disabled = true;
     btn.textContent = '🔎 Searching & Probing (≤100)...';
+    startProgressPolling('bulk_search');
 
     try {
       const res = await api('/api/sources/bulk-search', {
         method: 'POST',
         body: JSON.stringify({ raw_text, probe_live, include_web, include_yt, include_rutube, include_televizo, country, strict }),
       });
+      stopProgressPolling();
       state.bulkSourceMainResults = res.results || [];
       renderBulkSourceResultsTable(state.bulkSourceMainResults, 'bulkSourceResultsWrap');
       document.getElementById('btnImportBulkFoundSources').classList.toggle(
@@ -2999,10 +3062,12 @@ document.addEventListener('DOMContentLoaded', () => {
           : { id: '', name: line, tvg_id: '', category: 'Live TV' };
       });
 
+      startProgressPolling('bulk_search');
       const res = await api('/api/sources/bulk-search', {
         method: 'POST',
         body: JSON.stringify({ names: queries, probe_live: true, include_yt: true, include_rutube: true, include_televizo: true, include_web: true, strict: true }),
       });
+      stopProgressPolling();
 
       state.bulkSourceBrokenResults = res.results || [];
       renderBulkSourceResultsTable(state.bulkSourceBrokenResults, 'brokenBulkResultsWrap');
@@ -3091,11 +3156,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('btnRunScheduledCheckNow');
     btn.disabled = true;
     btn.textContent = '🛡️ Running Fallback Guard...';
+    startProgressPolling('fallback_guard');
     try {
       const res = await api('/api/scheduler/action', {
         method: 'POST',
         body: JSON.stringify({ action: 'run_fallback_guard', playlist_id: state.currentPlaylistId }),
       });
+      stopProgressPolling();
       const summary = res.summary || {};
       showToast(
         `🛡️ Fallback Guard: ${summary.online || 0} online, ${summary.failovers || 0} auto-failovers performed!`

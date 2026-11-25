@@ -1580,6 +1580,9 @@ def search_youtube_live_streams_fast(channel_name: str, target_country: str = ""
             "category": "Live TV",
         })
 
+    found_total = sum(1 for r in results if r.get("found"))
+    update_task_progress("bulk_search", False, len(normalized_queries), len(normalized_queries), "Complete", found_total, len(normalized_queries) - found_total, f"Search complete: Found {found_total}/{len(normalized_queries)} channels")
+    gc.collect()
     return results
 
 
@@ -1733,6 +1736,9 @@ def search_rutube_live_streams_fast(channel_name: str, target_country: str = "",
             "category": "Live TV",
         })
 
+    found_total = sum(1 for r in results if r.get("found"))
+    update_task_progress("bulk_search", False, len(normalized_queries), len(normalized_queries), "Complete", found_total, len(normalized_queries) - found_total, f"Search complete: Found {found_total}/{len(normalized_queries)} channels")
+    gc.collect()
     return results
 
 
@@ -2068,6 +2074,30 @@ def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True
         "category": info.get("category", "Televizo Live"),
     }]
 
+PROGRESS_LOCK = threading.Lock()
+PROGRESS_STATE = {
+    "televizo_sync": {"active": False, "current": 0, "total": 0, "percent": 0, "current_item": "", "succeeded": 0, "failed": 0, "message": "", "updated_at": 0},
+    "bulk_search": {"active": False, "current": 0, "total": 0, "percent": 0, "current_item": "", "succeeded": 0, "failed": 0, "message": "", "updated_at": 0},
+    "fallback_guard": {"active": False, "current": 0, "total": 0, "percent": 0, "current_item": "", "succeeded": 0, "failed": 0, "message": "", "updated_at": 0},
+}
+
+
+def update_task_progress(task_key: str, active: bool, current: int, total: int, current_item: str = "", succeeded: int = 0, failed: int = 0, message: str = ""):
+    pct = int((current / total) * 100) if total > 0 else (100 if not active else 0)
+    with PROGRESS_LOCK:
+        PROGRESS_STATE[task_key] = {
+            "active": active,
+            "current": current,
+            "total": total,
+            "percent": min(100, max(0, pct)),
+            "current_item": current_item,
+            "succeeded": succeeded,
+            "failed": failed,
+            "message": message,
+            "updated_at": int(time.time()),
+        }
+
+
 def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = True) -> dict:
     """
     Scans channels in playlist (or all playlists if playlist_id is None) matching televizo channels
@@ -2087,16 +2117,17 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
         channels = [dict(r) for r in rows]
 
     catalog = get_televizo_catalog()
-    catalog_names = {re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", ch.get("name", "").lower()) for ch in catalog}
+    catalog_names = {_clean_channel_for_televizo(ch.get("name", "")) for ch in catalog if ch.get("name")}
 
     to_refresh = []
     for ch in channels:
         u = ch.get("url", "").lower()
-        norm_name = re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", ch.get("name", "").lower())
-        if "tvcdnpotok" in u or "cdntvmedia" in u or "cdntvtech" in u or norm_name in catalog_names:
+        norm_name = _clean_channel_for_televizo(ch.get("name", ""))
+        if "tvcdnpotok" in u or "cdntvmedia" in u or "cdntvtech" in u or (norm_name and norm_name in catalog_names):
             to_refresh.append(ch)
 
     if not to_refresh:
+        update_task_progress("televizo_sync", False, 0, 0, "", 0, 0, "No Televizo channels found")
         return {"ok": True, "refreshed_count": 0, "total_matched": 0, "updated": 0, "message": "No Televizo channels found"}
 
     # Prioritize offline / broken channels first
@@ -2105,10 +2136,15 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
     def _worker(items):
         now = int(time.time())
         renewed_count = 0
+        failed_count = 0
+        total_items = len(items)
         touched_playlists = set()
-        for ch in items:
+        update_task_progress("televizo_sync", True, 0, total_items, "Starting...", 0, 0, f"Preparing to sync {total_items} Televizo channels...")
+        for idx, ch in enumerate(items, 1):
+            ch_name = ch.get("name", "Channel")
+            update_task_progress("televizo_sync", True, idx - 1, total_items, ch_name, renewed_count, failed_count, f"Extracting {ch_name} ({idx}/{total_items})...")
             try:
-                res = extract_televizo_stream_sync(ch["name"], timeout_sec=10)
+                res = extract_televizo_stream_sync(ch_name, timeout_sec=10)
                 if res.get("found") and res.get("url"):
                     fresh_url = res["url"]
                     fresh_ref = res.get("referrer") or ch.get("referrer") or ""
@@ -2127,7 +2163,7 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                             touched_playlists.add(pid)
                     add_or_update_channel_source_db(
                         channel_id=ch["id"],
-                        name=ch["name"],
+                        name=ch_name,
                         url=fresh_url,
                         source_name="Televizo Live Extractor",
                         quality="HD",
@@ -2135,8 +2171,13 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                         confidence=100
                     )
                     renewed_count += 1
+                else:
+                    failed_count += 1
             except Exception as e:
-                print(f"[Televizo Auto-Renew] Error refreshing {ch.get('name')}: {e}")
+                failed_count += 1
+                print(f"[Televizo Auto-Renew] Error refreshing {ch_name}: {e}")
+            update_task_progress("televizo_sync", True, idx, total_items, ch_name, renewed_count, failed_count, f"Synced {idx}/{total_items} · Renewed {renewed_count}")
+        update_task_progress("televizo_sync", False, total_items, total_items, "Complete", renewed_count, failed_count, f"Done: Renewed {renewed_count}/{total_items} channels")
         return renewed_count
 
     if background:
@@ -2341,19 +2382,37 @@ def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_
             })
 
     # Gather candidates per query from indexed catalog using precision scoring
+    total_q = len(normalized_queries)
+    update_task_progress("bulk_search", True, 0, total_q, "Matching indexed catalogs...", 0, 0, f"Matching {total_q} channel(s) against 35,000+ indexed streams...")
     per_query_cands = []
     all_to_probe = []
-    for q_obj in normalized_queries:
+    for idx_q, q_obj in enumerate(normalized_queries, 1):
         eff_country = target_country or extract_country(q_obj["name"], q_obj.get("tvg_id"), q_obj.get("category"))
         cands = match_stream_candidates_fast(q_obj["name"], q_obj["tvg_id"], limit=4, target_country=eff_country, strict=strict)
         per_query_cands.append((q_obj, cands, eff_country))
         if check_live:
             all_to_probe.extend(cands)
+        if idx_q % 5 == 0 or idx_q == total_q:
+            update_task_progress("bulk_search", True, int(idx_q * 0.3), total_q, q_obj["name"], 0, 0, f"Indexed match {idx_q}/{total_q}: {q_obj['name']}")
 
     # Concurrently probe EVERY single candidate stream
     if check_live and all_to_probe:
+        total_p = len(all_to_probe)
+        update_task_progress("bulk_search", True, int(total_q * 0.4), total_q, "Probing live streams...", 0, 0, f"Probing {total_p} candidate streams...")
+        probes = [None] * total_p
+        done_p = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
-            probes = list(pool.map(lambda c: probe_stream(c, timeout=3.5), all_to_probe))
+            fut_map = {pool.submit(probe_stream, c, 3.5): i for i, c in enumerate(all_to_probe)}
+            for fut in concurrent.futures.as_completed(fut_map):
+                i_p = fut_map[fut]
+                try:
+                    probes[i_p] = fut.result()
+                except Exception:
+                    probes[i_p] = {"status": "offline", "latency_ms": 0, "error": "Probe failed"}
+                done_p += 1
+                if done_p % 5 == 0 or done_p == total_p:
+                    pct_equiv = int(total_q * (0.4 + 0.5 * (done_p / max(1, total_p))))
+                    update_task_progress("bulk_search", True, pct_equiv, total_q, all_to_probe[i_p].get("name", ""), 0, 0, f"Probed {done_p}/{total_p} candidate streams...")
         for cand, pr in zip(all_to_probe, probes):
             cand["status"] = pr["status"]
             cand["latency_ms"] = pr["latency_ms"]
@@ -2610,6 +2669,9 @@ def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_
             "options_count": len(final_options),
         })
 
+    found_total = sum(1 for r in results if r.get("found"))
+    update_task_progress("bulk_search", False, len(normalized_queries), len(normalized_queries), "Complete", found_total, len(normalized_queries) - found_total, f"Search complete: Found {found_total}/{len(normalized_queries)} channels")
+    gc.collect()
     return results
 
 
@@ -3545,11 +3607,22 @@ def run_global_health_check(trigger_type: str = "scheduled_2h_fallback_guard", p
                 rows = conn.execute("SELECT * FROM channels").fetchall()
 
         channel_dicts = [dict(r) for r in rows]
-        results = []
-        # Concurrently probe primary stream URLs
+        total_ch = len(channel_dicts)
+        results = [None] * total_ch
+        update_task_progress("fallback_guard", True, 0, total_ch, "Starting Fallback Guard...", 0, 0, f"Probing {total_ch} channels...")
+        # Concurrently probe primary stream URLs with live progress
+        checked_so_far = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=PANEL_MAX_WORKERS) as pool:
-            for res in pool.map(lambda c: probe_stream(c, timeout=3.8), channel_dicts):
-                results.append(res)
+            fut_map = {pool.submit(probe_stream, c, 3.8): i for i, c in enumerate(channel_dicts)}
+            for fut in concurrent.futures.as_completed(fut_map):
+                i_c = fut_map[fut]
+                try:
+                    results[i_c] = fut.result()
+                except Exception:
+                    results[i_c] = {"id": channel_dicts[i_c]["id"], "url": channel_dicts[i_c]["url"], "status": "offline", "latency_ms": 0, "error": "Probe error"}
+                checked_so_far += 1
+                if checked_so_far % 5 == 0 or checked_so_far == total_ch:
+                    update_task_progress("fallback_guard", True, checked_so_far, total_ch, channel_dicts[i_c].get("name", ""), 0, 0, f"Checked {checked_so_far}/{total_ch}: {channel_dicts[i_c].get('name', '')}")
 
         online_count = 0
         offline_count = 0
@@ -3687,6 +3760,7 @@ def run_global_health_check(trigger_type: str = "scheduled_2h_fallback_guard", p
             SCHEDULER_STATE["next_run_at"] = now + SCHEDULER_STATE["interval_seconds"]
             SCHEDULER_STATE["last_summary"] = summary
             SCHEDULER_STATE["total_failovers"] += failovers_count
+        update_task_progress("fallback_guard", False, total_ch, total_ch, "Complete", online_count, offline_count, f"Guard finished: {online_count} online, {failovers_count} auto-healed")
         return summary
     finally:
         with SCHEDULER_LOCK:
@@ -4164,6 +4238,12 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
+
+        if path == "/api/progress":
+            with PROGRESS_LOCK:
+                snap = {k: dict(v) for k, v in PROGRESS_STATE.items()}
+            self.send_json({"progress": snap})
+            return
 
         if path in ("/api/health", "/ping", "/health"):
             with SCHEDULER_LOCK:
