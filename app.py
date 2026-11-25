@@ -1842,30 +1842,52 @@ def get_televizo_catalog() -> list:
         except Exception:
             return []
 
+def _clean_channel_for_televizo(name: str) -> str:
+    s = (name or "").strip()
+    s = re.sub(r"^[A-Z]{2,3}\s*[:|\-•]\s*", "", s)
+    s = re.sub(r"\[.*?\]|\(.*?\)|\{.*?\}", " ", s)
+    s = re.sub(r"\b(UHD|4K|FHD|HD|SD|HEVC|H265|H264|VIP|RAW|1080p|720p)\b", "", s, flags=re.IGNORECASE)
+    return re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", s.lower())
+
+
 def find_televizo_channel_info(query: str) -> dict:
     catalog = get_televizo_catalog()
     if not catalog or not query:
         return {}
-    q_norm = re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", query.lower())
-    if not q_norm:
+    q_norm = _clean_channel_for_televizo(query)
+    if not q_norm or len(q_norm) < 2:
         return {}
 
+    # 1. Exact normalized channel name match
     for ch in catalog:
-        c_norm = re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", ch.get("name", "").lower())
-        if c_norm == q_norm:
+        c_norm = _clean_channel_for_televizo(ch.get("name", ""))
+        if c_norm and c_norm == q_norm:
             return ch
 
+    # 2. Exact page slug match
     for ch in catalog:
         page = ch.get("page", "").lower()
-        if q_norm in page.replace("-", "").replace(".html", ""):
+        slug = page.rsplit("/", 1)[-1].replace(".html", "").replace("-", "")
+        if slug and slug == q_norm:
             return ch
 
-    for ch in catalog:
-        c_norm = re.sub(r"[^a-zA-Z0-9\u0400-\u04FF]", "", ch.get("name", "").lower())
-        if q_norm in c_norm or (len(q_norm) > 3 and c_norm in q_norm):
-            return ch
+    # 3. High-confidence fuzzy match (only for longer names >= 5 chars to prevent false positives like BTV -> EnglishClubTV)
+    if len(q_norm) >= 5:
+        best_ch = None
+        best_ratio = 0.0
+        for ch in catalog:
+            c_norm = _clean_channel_for_televizo(ch.get("name", ""))
+            if not c_norm:
+                continue
+            ratio = difflib.SequenceMatcher(None, q_norm, c_norm).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_ch = ch
+        if best_ch and best_ratio >= 0.86:
+            return best_ch
 
     return {}
+
 
 def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> dict:
     """
@@ -1896,40 +1918,45 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                     "--disable-setuid-sandbox",
                     "--disable-dev-shm-usage",
                     "--disable-gpu",
-                    "--no-zygote",
-                    "--single-process",
                     "--disable-extensions",
-                    "--disable-software-rasterizer",
                     "--disable-background-networking",
                     "--mute-audio",
                 ]
             )
-            page = browser.new_page()
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+                ignore_https_errors=True,
+            )
+            page = context.new_page()
 
             def _filter_route(route):
                 u = route.request.url.lower()
                 if ".m3u8" in u:
                     route.continue_()
                     return
-                if route.request.resource_type in ("image", "font", "stylesheet", "media"):
+                if route.request.resource_type in ("image", "font"):
                     route.abort()
                     return
                 route.continue_()
 
             page.route("**/*", _filter_route)
 
-            def on_req(req):
-                u = req.url
+            def _capture_url(u: str):
                 if ".m3u8" in u.lower():
                     if not any(ad in u.lower() for ad in ad_domains):
                         if u not in streams:
                             streams.append(u)
 
-            page.on("request", on_req)
+            page.on("request", lambda req: _capture_url(req.url))
+            page.on("response", lambda resp: _capture_url(resp.url))
+
             t0 = time.time()
             page.goto(page_url, wait_until="domcontentloaded", timeout=timeout_sec * 1000)
 
-            for _ in range(int(timeout_sec / 1.5)):
+            for _ in range(int(timeout_sec / 1.2)):
+                if streams:
+                    time.sleep(0.6)  # Allow redirect target (200 OK) to also be captured
+                    break
                 time.sleep(0.8)
                 for frame in page.frames:
                     try:
@@ -1939,13 +1966,20 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                                 loc.click(timeout=300)
                     except Exception:
                         pass
-                if streams:
-                    break
 
+            context.close()
             browser.close()
             elapsed = round(time.time() - t0, 2)
             if streams:
-                streams.sort(key=lambda s: 100 if "tvcdnpotok" in s else (50 if "index.m3u8" in s else 10), reverse=True)
+                # Prefer direct signed token URLs over 302 redirector URLs when available
+                streams.sort(
+                    key=lambda s: (
+                        200 if ("tvcdnpotok" in s and "wmsAuthSign" not in s) else
+                        100 if "tvcdnpotok" in s else
+                        (50 if "index.m3u8" in s else 10)
+                    ),
+                    reverse=True,
+                )
                 return {
                     "found": True,
                     "url": streams[0],
@@ -3255,7 +3289,23 @@ def auto_populate_playlist_backups_db(playlist_id: str, max_sources_per_channel:
     return {"total_channels": len(channels), "populated_channels": populated}
 
 
+def _is_html_or_error_body(chunk: bytes, content_type: str = "") -> bool:
+    ct = (content_type or "").lower()
+    if "text/html" in ct or "application/xhtml" in ct:
+        return True
+    head = chunk.lstrip()[:200].lower()
+    if head.startswith((b"<!doctype", b"<html", b"<head", b"<body", b"<script", b'{"error', b'{"message')):
+        return True
+    return False
+
+
 def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
+    """
+    Deep stream liveness probe matching real IPTV player (VLC/TiviMate) behavior:
+    1. Rejects HTML error pages, Cloudflare challenges, and empty responses.
+    2. For HLS (.m3u8 / #EXTM3U), parses the manifest and verifies that at least one
+       child variant playlist or media segment (.ts/.m4s) actually loads with video data.
+    """
     url = (channel_row.get("url") or "").strip()
     cid = channel_row.get("id") or str(channel_row.get("_idx", ""))
     if not url.startswith(("http://", "https://")):
@@ -3273,15 +3323,72 @@ def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
     try:
         req = urllib.request.Request(url, headers=headers, method="GET")
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            chunk = resp.read(256)
+            final_url = resp.geturl() or url
+            content_type = resp.headers.get("Content-Type", "")
+            chunk = resp.read(16384)
             code = resp.getcode()
             elapsed = int((time.time() - start) * 1000)
-            if 200 <= code < 400 and chunk:
-                return {"id": cid, "url": url, "status": "online", "latency_ms": elapsed, "error": ""}
-            return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": f"HTTP {code} Empty"}
+
+            if not (200 <= code < 400) or not chunk:
+                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": f"HTTP {code} Empty"}
+
+            if _is_html_or_error_body(chunk, content_type):
+                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "HTML/Error page instead of stream"}
+
+            is_hls = (
+                chunk.lstrip().startswith(b"#EXTM3U")
+                or "mpegurl" in content_type.lower()
+                or ".m3u8" in final_url.lower()
+            )
+
+            if is_hls:
+                text = chunk.decode("utf-8", errors="replace")
+                child_urls = [
+                    line.strip()
+                    for line in text.splitlines()
+                    if line.strip() and not line.strip().startswith("#")
+                ]
+                if not child_urls:
+                    return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Empty HLS manifest (no segments)"}
+
+                # Verify first child URL (variant .m3u8 or .ts/.m4s segment) is actually reachable
+                first_child = urllib.parse.urljoin(final_url, child_urls[0])
+                child_hdrs = dict(headers)
+                if ".m3u8" not in first_child.lower():
+                    child_hdrs["Range"] = "bytes=0-1023"
+
+                creq = urllib.request.Request(first_child, headers=child_hdrs, method="GET")
+                with urllib.request.urlopen(creq, timeout=min(timeout, 3.5)) as cresp:
+                    ccode = cresp.getcode()
+                    cct = cresp.headers.get("Content-Type", "")
+                    cchunk = cresp.read(4096)
+                    if not (200 <= ccode < 400) or not cchunk or _is_html_or_error_body(cchunk, cct):
+                        return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Stream segment unreachable or blocked"}
+
+                    # If child was a variant .m3u8 (master -> media playlist), verify it has segments too
+                    if cchunk.lstrip().startswith(b"#EXTM3U"):
+                        ctext = cchunk.decode("utf-8", errors="replace")
+                        seg_urls = [
+                            ln.strip()
+                            for ln in ctext.splitlines()
+                            if ln.strip() and not ln.strip().startswith("#")
+                        ]
+                        if not seg_urls:
+                            return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Empty variant HLS playlist"}
+                        first_seg = urllib.parse.urljoin(cresp.geturl() or first_child, seg_urls[0])
+                        seg_hdrs = dict(headers)
+                        seg_hdrs["Range"] = "bytes=0-511"
+                        sreq = urllib.request.Request(first_seg, headers=seg_hdrs, method="GET")
+                        with urllib.request.urlopen(sreq, timeout=min(timeout, 3.0)) as sresp:
+                            schunk = sresp.read(512)
+                            if not (200 <= sresp.getcode() < 400) or not schunk or _is_html_or_error_body(schunk, sresp.headers.get("Content-Type", "")):
+                                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Media segment failed"}
+
+            elapsed = int((time.time() - start) * 1000)
+            return {"id": cid, "url": url, "status": "online", "latency_ms": elapsed, "error": ""}
     except urllib.error.HTTPError as e:
         elapsed = int((time.time() - start) * 1000)
-        status = "offline" if e.code in (404, 410, 500, 502, 503, 504) else "warning"
+        status = "offline" if e.code in (401, 403, 404, 410, 500, 502, 503, 504) else "warning"
         return {"id": cid, "url": url, "status": status, "latency_ms": elapsed, "error": f"HTTP {e.code}"}
     except Exception as e:
         err_msg = str(e)
@@ -5262,16 +5369,52 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         self.send_json({"error": "Unknown API endpoint"}, 404)
 
 
+def sync_db_from_github_raw():
+    """On lightweight cloud panels (Render), sync latest DB updated by GitHub Actions."""
+    repo_db_url = os.environ.get(
+        "GITHUB_DB_RAW_URL",
+        "https://raw.githubusercontent.com/zeroping4500-maker/streamforge-iptv-studio/main/data/iptv_studio.db",
+    )
+    try:
+        req = urllib.request.Request(repo_db_url, headers={"User-Agent": "StreamForgeSync/1.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = resp.read()
+            if data and data.startswith(b"SQLite format 3"):
+                tmp_path = DATA_DIR / "iptv_studio.db.tmp"
+                tmp_path.write_bytes(data)
+                os.replace(tmp_path, DB_PATH)
+                print(f"[Cloud Panel] Synced latest database ({len(data)} bytes) from GitHub Actions.")
+    except Exception as e:
+        print(f"[Cloud Panel] GitHub DB sync skipped: {e}")
+
+
 def run_server(port: int = 8765):
     global SERVER_PORT
     SERVER_PORT = port
+    is_lightweight_panel = bool(
+        os.environ.get("RENDER")
+        or os.environ.get("RENDER_EXTERNAL_URL")
+        or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
+    )
+    if is_lightweight_panel:
+        sync_db_from_github_raw()
+
     init_db()
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
-    threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
-    threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()
+
+    if is_lightweight_panel:
+        print("[Cloud Panel Mode] Heavy background Playwright/probe loops offloaded to GitHub Actions.")
+        with SCHEDULER_LOCK:
+            SCHEDULER_STATE["enabled"] = False
+        with TELEVIZO_RENEW_LOCK:
+            TELEVIZO_RENEW_STATE["enabled"] = False
+    else:
+        threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
+        threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()
+
     threading.Thread(target=keep_alive_loop, daemon=True).start()
-    if not (os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL")):
+    if not (os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("KEEP_ALIVE_URL") or is_lightweight_panel):
         threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
 
     server = ThreadingHTTPServer(("0.0.0.0", port), IPTVStudioHandler)
