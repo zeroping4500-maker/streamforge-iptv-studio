@@ -42,7 +42,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/ channels.m3u data/iptv_studio.db
+          git add output/ channels.m3u
           if git diff --staged --quiet; then
             echo "No changes to commit. All streams are up-to-date."
           else

@@ -1934,6 +1934,7 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                     "--disable-extensions",
                     "--disable-background-networking",
                     "--mute-audio",
+                    "--blink-settings=imagesEnabled=false",
                 ]
             )
             context = browser.new_context(
@@ -1941,21 +1942,6 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                 ignore_https_errors=True,
             )
             page = context.new_page()
-
-            def _filter_route(route):
-                try:
-                    u = route.request.url.lower()
-                    if ".m3u8" in u:
-                        route.continue_()
-                        return
-                    if route.request.resource_type in ("image", "font"):
-                        route.abort()
-                        return
-                    route.continue_()
-                except Exception:
-                    pass
-
-            page.route("**/*", _filter_route)
 
             def _capture_url(u: str, content_type: str = ""):
                 u_low = u.lower()
@@ -2000,10 +1986,6 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                     except Exception:
                         pass
 
-            try:
-                page.unroute_all(behavior="ignoreErrors")
-            except Exception:
-                pass
             context.close()
             browser.close()
             elapsed = round(time.time() - t0, 2)
@@ -5760,8 +5742,6 @@ def run_server(port: int = 8765):
         or os.environ.get("RENDER_EXTERNAL_URL")
         or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
     )
-    if is_lightweight_panel:
-        sync_db_from_github_raw()
 
     init_db()
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
