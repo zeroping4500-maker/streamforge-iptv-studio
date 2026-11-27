@@ -2063,3 +2063,16 @@ body {
   display: block;
 }
 
+.embed-open-link {
+  display: inline-block;
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.embed-open-link:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+

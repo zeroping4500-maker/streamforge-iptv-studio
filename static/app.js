@@ -2451,6 +2451,8 @@ function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent =
 
   const staleFrame = document.getElementById('embedPlayerFrame');
   if (staleFrame) staleFrame.remove();
+  const staleOpenLink = document.getElementById('embedOpenLink');
+  if (staleOpenLink) staleOpenLink.remove();
   video.style.display = '';
 
   if (state.hlsInstance) {
@@ -2492,9 +2494,19 @@ function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent =
     frame.src = url;
     frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
     frame.setAttribute('allowfullscreen', '');
-    frame.referrerPolicy = 'no-referrer';
+    // The provider player refuses to play when it sees no referrer, so send our origin
+    // instead of stripping it; cross-origin embeds only ever receive the origin.
+    frame.referrerPolicy = 'origin';
     video.style.display = 'none';
     video.parentElement.insertBefore(frame, video);
+    const openLink = document.createElement('a');
+    openLink.id = 'embedOpenLink';
+    openLink.className = 'embed-open-link';
+    openLink.href = `/watch?u=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}`;
+    openLink.target = '_blank';
+    openLink.rel = 'noopener';
+    openLink.textContent = 'Open player in its own page';
+    video.parentElement.insertBefore(openLink, video);
     if (proxyBadge) proxyBadge.classList.add('hidden');
     if (proxyToggleState) proxyToggleState.textContent = 'Embedded player';
     return;

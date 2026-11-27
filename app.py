@@ -14,6 +14,7 @@ import concurrent.futures
 import difflib
 import gc
 import gzip
+import html
 import io
 import json
 import os
@@ -43,6 +44,8 @@ DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
 
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
+# Provider pages allowed inside the /watch shell (their players refuse foreign frames)
+PLAYER_EMBED_HOSTS = ("dembed.st", "thedaddy.li", "pflix.net", "dlhd.dad")
 IS_LIGHTWEIGHT_PANEL = bool(
     os.environ.get("RENDER")
     or os.environ.get("RENDER_EXTERNAL_URL")
@@ -4619,6 +4622,84 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 "scheduler_enabled": sched_ok,
                 "timestamp": int(time.time()),
             })
+            return
+
+        if path == "/watch":
+            target = (qs.get("u") or [""])[0].strip()
+            label = (qs.get("name") or ["Live channel"])[0].strip() or "Live channel"
+            parsed_target = urllib.parse.urlparse(target)
+            host = (parsed_target.hostname or "").lower()
+            if parsed_target.scheme not in ("http", "https") or not any(
+                host == allowed or host.endswith("." + allowed)
+                for allowed in PLAYER_EMBED_HOSTS
+            ):
+                self.send_json({"error": "Unsupported player host"}, 400)
+                return
+            provider_href = ""
+            if host.endswith("dembed.st"):
+                cid = (urllib.parse.parse_qs(parsed_target.query).get("id") or [""])[0]
+                if re.fullmatch(r"\d+", cid):
+                    provider_href = f"https://thedaddy.li/stream/stream-{cid}.php"
+            safe_label = html.escape(label)
+            provider_link = (
+                f'<a class="btn ghost" href="{html.escape(provider_href)}" '
+                'target="_blank" rel="noopener noreferrer">Play on theDaddy</a>'
+                if provider_href
+                else ""
+            )
+            page = f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{safe_label} - ZEMYIPTV</title>
+<style>
+*{{box-sizing:border-box}}
+body{{margin:0;min-height:100vh;background:#05070d;color:#e2e8f3;
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+background-image:radial-gradient(1200px 600px at 15% -10%,#1d4ed833,transparent),
+radial-gradient(900px 500px at 100% 0%,#2563eb26,transparent)}}
+header{{display:flex;align-items:center;justify-content:space-between;gap:12px;
+padding:14px 16px;border-bottom:1px solid #1e293b}}
+h1{{font-size:15px;font-weight:600;margin:0}}
+header a{{color:#93c5fd;font-size:13px;text-decoration:none}}
+main{{padding:14px;max-width:1100px;margin:0 auto}}
+.frame-wrap{{width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;
+background:#000;box-shadow:0 18px 40px -24px #2563eb}}
+iframe{{width:100%;height:100%;border:0;display:block}}
+.actions{{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}}
+.btn{{display:inline-block;padding:10px 16px;border-radius:999px;font-size:13px;
+text-decoration:none;color:#eaf1ff;border:1px solid #60a5fa44;
+background:linear-gradient(135deg,#2563eb,#3b82f6)}}
+.btn.ghost{{background:#0b1220;border-color:#1e293b;color:#93c5fd}}
+.hint{{margin:14px 0 0;font-size:12px;line-height:1.5;color:#64748b}}
+@media (max-width:480px){{main{{padding:10px}}}}
+</style>
+</head>
+<body>
+<header><h1>{safe_label}</h1><a href="/">ZEMYIPTV</a></header>
+<main>
+<div class="frame-wrap"><iframe src="{html.escape(target)}" title="{safe_label}"
+allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen
+referrerpolicy="origin"></iframe></div>
+<div class="actions">{provider_link}</div>
+<p class="hint">This page frames the provider's own player so it loads one level deep.
+If it still says the player only works when embedded, use the provider button above.</p>
+</main>
+</body>
+</html>
+"""
+            raw = page.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Security-Policy", "frame-src https:; default-src 'self'; "
+                             "style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'")
+            self.send_header("Referrer-Policy", "origin")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(raw)
             return
 
         m3u_match = re.match(r"^/m3u/([a-zA-Z0-9_-]+?)(?:\.(m3u8|m3u))?$", path)
