@@ -9,11 +9,15 @@ Stdlib only, no app.py imports: every function is callable on its own, and the
 network budget per call is bounded so weak hosts are not starved.
 """
 
+import concurrent.futures
 import gzip
+import html as html_mod
 import ipaddress
 import json
+import os
 import re
 import socket
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -242,6 +246,244 @@ def embed_referrer_for(page_url: str) -> str:
     if m and "dembed.st" in page_url:
         return THEDADDY_EMBED_REFERRER.format(cid=m.group(1))
     return ""
+
+
+# ---------------------------------------------------------------------------
+# smotret.tv - RU channel catalogue. Each category page lists its channels as
+# <li data-channel-id=... data-channel-name=...>; each channel page frames a
+# player page that declares its sources inline:
+#   var streams = ["https://.../chunklist.m3u8", "/error.m3u8"]
+# Channels that play through ok.ru / rutube / 1tv.ru / smotrim.ru have no HLS
+# in the player page and are reported as embed-only instead of imported.
+# ---------------------------------------------------------------------------
+
+SMOTRET_BASE = "https://smotret.tv"
+SMOTRET_REFERRER = "https://smotret.tv/"
+SMOTRET_CACHE_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "data", "smotret_catalog_cache.json"
+)
+SMOTRET_CACHE_TTL = 24 * 3600
+
+SMOTRET_CATEGORIES = (
+    ("", "General"),
+    ("music", "Music"),
+    ("news", "News"),
+    ("sport", "Sport"),
+    ("detskie", "Kids"),
+    ("christian", "Christian"),
+    ("razvlekatelnye", "Entertainment"),
+    ("poznavatelnye", "Educational"),
+    ("region", "Regional"),
+    ("relax", "Relax"),
+)
+
+_SMOTRET_LI_RE = re.compile(
+    r'<li[^>]*data-channel-id="([^"]+)"[^>]*data-channel-name="([^"]*)"[^>]*>(.*?)</li>',
+    re.S | re.I,
+)
+_SMOTRET_IFRAME_RE = re.compile(r'<iframe[^>]+src=["\']?([^"\'> ]+)', re.I)
+_SMOTRET_STREAMS_RE = re.compile(r'var\s+streams\s*=\s*(\[[^\]]*\])')
+_SMOTRET_M3U8_RE = re.compile(r'https?://[^\s"\'<>]+\.m3u8[^\s"\'<>]*')
+_SMOTRET_NAME_SUFFIX_RE = re.compile(r"\s*(?:[—–-]\s*)?(?:смотреть\s+онлайн|watch\s+online)\b.*$", re.I)
+_SMOTRET_ONLINE_SUFFIX_RE = re.compile(r"\s*[—–-]\s*online\s*$", re.I)
+
+
+def _smotret_load_cache(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return {}
+    channels = data.get("channels") if isinstance(data, dict) else None
+    return channels if isinstance(channels, dict) else {}
+
+
+def _smotret_save_cache(path: str, cache: dict) -> None:
+    try:
+        folder = os.path.dirname(path)
+        if folder:
+            os.makedirs(folder, exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as handle:
+            json.dump({"v": 1, "saved_at": int(time.time()), "channels": cache}, handle)
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
+def parse_smotret_listing(page_html: str, category: str = "Live TV") -> list:
+    """Channel cards from one category page: [{id, name, page, logo, category}]."""
+    out = []
+    for match in _SMOTRET_LI_RE.finditer(page_html or ""):
+        cid = _clean_name(html_mod.unescape(match.group(1) or ""))
+        raw_name = _clean_name(html_mod.unescape(match.group(2) or ""))
+        name = _SMOTRET_ONLINE_SUFFIX_RE.sub("", _SMOTRET_NAME_SUFFIX_RE.sub("", raw_name)).strip()
+        name = _clean_name(name) or raw_name
+        if not cid or not name:
+            continue
+        block = match.group(3) or ""
+        href = re.search(r'href="(/[^"]+)"', block)
+        logo = re.search(r'data-(?:src|original)="([^"]+)"', block) or re.search(r'<img[^>]+src="([^"]+)"', block)
+        out.append({
+            "id": cid,
+            "name": name,
+            "page": urllib.parse.urljoin(SMOTRET_BASE + "/", href.group(1)) if href else f"{SMOTRET_BASE}/{cid}",
+            "logo": urllib.parse.urljoin(SMOTRET_BASE + "/", logo.group(1)) if logo else "",
+            "category": category or "Live TV",
+        })
+    return out
+
+
+def parse_smotret_streams(player_html: str) -> list:
+    """HLS URLs from a player page, best first; the placeholder /error.m3u8 is dropped."""
+    candidates = []
+    match = _SMOTRET_STREAMS_RE.search(player_html or "")
+    if match:
+        try:
+            data = json.loads(match.group(1))
+        except Exception:
+            data = []
+        for entry in data if isinstance(data, list) else []:
+            if isinstance(entry, str) and entry.strip():
+                candidates.append(entry.strip())
+    if not candidates:
+        candidates = _SMOTRET_M3U8_RE.findall(player_html or "")
+    urls = []
+    for url in candidates:
+        if not url.startswith(("http://", "https://")):
+            continue
+        if url.rstrip("/").endswith("/error.m3u8"):
+            continue
+        if url not in urls:
+            urls.append(url)
+    urls.sort(key=lambda u: 0 if ".m3u8" in u else 1)
+    return urls
+
+
+def resolve_smotret_channel(page_url: str, timeout: float = 12.0) -> dict:
+    """Channel page -> player iframe -> HLS URLs. Returns {ok, streams, player, error}."""
+    if not page_url.startswith(("http://", "https://")):
+        return {"ok": False, "streams": [], "player": "", "error": "invalid channel page"}
+    page = http_get(page_url, referrer=SMOTRET_REFERRER, timeout=timeout, max_bytes=2 * 1024 * 1024)
+    if not page["ok"]:
+        return {"ok": False, "streams": [], "player": "", "error": page["error"]}
+    frame = _SMOTRET_IFRAME_RE.search(page["body"].decode("utf-8", errors="ignore"))
+    if not frame:
+        return {"ok": False, "streams": [], "player": "", "error": "no player iframe on channel page"}
+    player_url = urllib.parse.urljoin(page_url, frame.group(1))
+    player = http_get(player_url, referrer=page_url, timeout=timeout, max_bytes=1024 * 1024)
+    if not player["ok"]:
+        return {"ok": False, "streams": [], "player": player_url, "error": player["error"]}
+    streams = parse_smotret_streams(player["body"].decode("utf-8", errors="ignore"))
+    return {
+        "ok": bool(streams),
+        "streams": streams,
+        "player": player_url,
+        "error": "" if streams else "embed-only channel (no HLS in player page)",
+    }
+
+
+def fetch_smotret_channels(timeout: float = 12.0, workers: int = 8, max_resolve: int = 0,
+                           cache_path: str = "", cache_ttl: int = SMOTRET_CACHE_TTL) -> dict:
+    """
+    Every channel in smotret.tv's ten categories, resolved to its HLS URL.
+
+    Two requests per channel (channel page -> player page) the first time; the
+    resolved URLs are cached per channel id, so a later sync only fetches the
+    ten category pages until entries expire (cache_ttl, default 24 h).
+    max_resolve > 0 caps how many channels a single run resolves.
+    Returns {ok, status, channels, error, discovered, resolved, embed_only, pending}.
+    """
+    cache_file = cache_path or SMOTRET_CACHE_FILE
+    discovered = {}
+    listing_errors = []
+    status = 0
+    for slug, label in SMOTRET_CATEGORIES:
+        url = SMOTRET_BASE + (f"/{slug}/" if slug else "/")
+        res = http_get(url, referrer=SMOTRET_REFERRER, timeout=timeout, max_bytes=2 * 1024 * 1024)
+        status = status or res["status"]
+        if not res["ok"] or _is_cloudflare_challenge(res):
+            listing_errors.append(f"{label}: {res['error'] or 'challenge'}")
+            continue
+        for channel in parse_smotret_listing(res["body"].decode("utf-8", errors="ignore"), label):
+            known = discovered.get(channel["id"])
+            if known is None:
+                discovered[channel["id"]] = channel
+            elif known["category"] == "General" and channel["category"] != "General":
+                known["category"] = channel["category"]
+                known["logo"] = known["logo"] or channel["logo"]
+    if not discovered:
+        return {"ok": False, "status": status, "channels": [], "discovered": 0, "resolved": 0,
+                "embed_only": 0, "pending": 0,
+                "error": "; ".join(listing_errors) or "no channel cards matched (page layout changed?)"}
+
+    cache = _smotret_load_cache(cache_file)
+    now = int(time.time())
+    todo = []
+    for channel in discovered.values():
+        entry = cache.get(channel["id"]) or {}
+        if entry and now - int(entry.get("ts") or 0) < cache_ttl:
+            continue
+        todo.append(channel)
+    if max_resolve and max_resolve > 0:
+        todo = todo[:max_resolve]
+
+    resolved_now = 0
+    if todo:
+        pool_size = max(1, min(int(workers or 1), 16))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=pool_size) as pool:
+            futures = {pool.submit(resolve_smotret_channel, ch["page"], timeout): ch for ch in todo}
+            for future in concurrent.futures.as_completed(futures):
+                channel = futures[future]
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = {"ok": False, "streams": [], "player": "", "error": str(exc)}
+                base = {"name": channel["name"], "category": channel["category"],
+                        "logo": channel["logo"], "ts": now}
+                if result["ok"]:
+                    base.update({"url": result["streams"][0], "streams": result["streams"][:4],
+                                 "player": result["player"]})
+                    resolved_now += 1
+                elif result.get("player"):
+                    base["embed"] = True
+                    base["player"] = result["player"]
+                else:
+                    continue
+                cache[channel["id"]] = base
+        _smotret_save_cache(cache_file, cache)
+
+    channels = []
+    embed_only = 0
+    pending = 0
+    for channel in discovered.values():
+        entry = cache.get(channel["id"]) or {}
+        url = entry.get("url") or ""
+        if url.startswith(("http://", "https://")):
+            channels.append({
+                "name": entry.get("name") or channel["name"],
+                "url": url,
+                "category": entry.get("category") or channel["category"] or "Live TV",
+                "logo": entry.get("logo") or channel["logo"],
+                "referrer": entry.get("player") or SMOTRET_REFERRER,
+                "user_agent": BROWSER_UA,
+                "quality": "HD",
+            })
+        elif entry.get("embed"):
+            embed_only += 1
+        else:
+            pending += 1
+    channels.sort(key=lambda ch: ch["name"].lower())
+    return {
+        "ok": bool(channels),
+        "status": status,
+        "channels": channels,
+        "error": "" if channels else ("; ".join(listing_errors) or "no HLS channels resolved yet"),
+        "discovered": len(discovered),
+        "resolved": resolved_now,
+        "embed_only": embed_only,
+        "pending": pending,
+    }
 
 
 # ---------------------------------------------------------------------------

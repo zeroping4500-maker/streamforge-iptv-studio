@@ -13,3 +13,5 @@ venv/
 test_*.py
 benchmark_*.py
 check_dom.py
+data/smotret_catalog_cache.json
+data/smotret_catalog_cache.json.tmp

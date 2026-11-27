@@ -944,7 +944,8 @@ def sync_all_provider_sources(force: bool = False) -> dict:
         try:
             # Non-M3U catalogues come back in their own shape; map them onto the
             # same item schema the M3U parser produces so search stays uniform.
-            adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels}.get(p_type)
+            adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels,
+                       "smotret": ext.fetch_smotret_channels}.get(p_type)
             if adapter is not None:
                 res = adapter()
                 if not res.get("ok"):
@@ -3559,6 +3560,16 @@ def init_db():
                 1,
                 15,
             ),
+            (
+                "prov_smotret_ru",
+                "smotret.tv RU Channels",
+                "https://smotret.tv/",
+                "🇷🇺 smotret.tv",
+                "smotret",
+                1,
+                1,
+                16,
+            ),
         ]
         conn.executemany(
             """
@@ -5111,8 +5122,11 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
             if kind == "thedaddy":
                 self.send_json(ext.probe_source(ext.THEDADDY_LIST_URL))
                 return
+            if kind == "smotret":
+                self.send_json(ext.probe_source(ext.SMOTRET_BASE + "/"))
+                return
             if not probe_url.startswith(("http://", "https://")):
-                self.send_json({"error": "Provide url= (http/https) or type=tvnow|thedaddy|pflix"}, 400)
+                self.send_json({"error": "Provide url= (http/https) or type=tvnow|thedaddy|pflix|smotret"}, 400)
                 return
             self.send_json(ext.probe_source(probe_url))
             return
@@ -5280,7 +5294,8 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
                 badge = f"⚡ {name[:12]}"
 
             try:
-                adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels}.get(prov_type)
+                adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels,
+                           "smotret": ext.fetch_smotret_channels}.get(prov_type)
                 if adapter is not None:
                     res = adapter()
                     if not res.get("ok"):
