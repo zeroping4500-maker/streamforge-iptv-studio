@@ -13,6 +13,7 @@ Fixes & Features:
 import concurrent.futures
 import difflib
 import gc
+import gzip
 import io
 import json
 import os
@@ -1137,6 +1138,211 @@ def match_stream_candidates_fast(query: str, tvg_id: str = "", limit: int = 8, t
     return out
 
 
+# ---------------------------------------------------------------------------
+# Specialized web m3u8 discovery: open public stream index + cached web scrape
+# ---------------------------------------------------------------------------
+# Resource rules:
+# - The open index (iptv-org public API) is downloaded ONCE, gzip-compressed,
+#   cached on disk and shared by every query (no per-query network cost).
+# - It is lazy-loaded on first search, never at boot, so startup stays light.
+# - Scraped web searches are cached per query (TTL) and bounded in size.
+OPEN_INDEX_CACHE_FILE = DATA_DIR / "open_index_m3u8_cache.json"
+OPEN_INDEX_TTL_SECONDS = 24 * 3600
+OPEN_INDEX_FAILURE_TTL_SECONDS = 600
+OPEN_INDEX_MAX_DOWNLOAD_BYTES = 48 * 1024 * 1024
+OPEN_INDEX_LOCK = threading.Lock()
+OPEN_INDEX_STATE = {
+    "items": [], "by_clean": {}, "token_index": {},
+    "loaded": False, "fetching": False, "fetched_at": 0.0, "failed_at": 0.0,
+}
+
+WEB_SEARCH_CACHE_TTL_SECONDS = 1800
+WEB_SEARCH_CACHE_MAX = 200
+WEB_SEARCH_RESULT_CACHE = {}
+
+
+def _read_open_index_disk(max_age: float):
+    """Returns (items, fetched_at) from the disk cache when fresh, else None."""
+    try:
+        if not OPEN_INDEX_CACHE_FILE.exists():
+            return None
+        with open(OPEN_INDEX_CACHE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        items = data.get("items")
+        fetched_at = float(data.get("fetched_at", 0))
+        if not isinstance(items, list) or not items:
+            return None
+        if time.time() - fetched_at > max_age:
+            return None
+        return items, fetched_at
+    except Exception:
+        return None
+
+
+def _fetch_open_index_items() -> tuple:
+    """Downloads the public iptv-org streams.json (one request, gzip) and parses it."""
+    url = "https://iptv-org.github.io/api/streams.json"
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0",
+        "Accept-Encoding": "gzip",
+    })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read(OPEN_INDEX_MAX_DOWNLOAD_BYTES)
+    if (resp.headers.get("Content-Encoding") or "").lower() == "gzip" or raw[:2] == b"\x1f\x8b":
+        raw = gzip.decompress(raw)
+    data = json.loads(raw.decode("utf-8", errors="ignore"))
+
+    items = []
+    seen_urls = set()
+    for entry in data if isinstance(data, list) else []:
+        u = (entry.get("url") or "").strip()
+        if not u.startswith(("http://", "https://")) or u in seen_urls:
+            continue
+        name = (entry.get("title") or "").strip() or guess_name_from_url(u)
+        clean = clean_channel_name_for_match(name)
+        if not clean:
+            continue
+        seen_urls.add(u)
+        items.append({
+            "name": name,
+            "clean": clean,
+            "category": "Live TV",
+            "url": u,
+            "quality": (entry.get("quality") or "HD").strip() or "HD",
+        })
+
+    fetched_at = time.time()
+    try:
+        tmp_file = OPEN_INDEX_CACHE_FILE.with_suffix(".tmp")
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump({"fetched_at": fetched_at, "items": items}, f)
+        tmp_file.replace(OPEN_INDEX_CACHE_FILE)
+    except Exception:
+        pass
+    return items, fetched_at
+
+
+def _set_open_index_state(items: list, fetched_at: float):
+    by_clean = {}
+    token_index = {}
+    for i, item in enumerate(items):
+        clean = item.get("clean") or ""
+        if clean:
+            by_clean.setdefault(clean, []).append(i)
+        for tok in set(clean.split()):
+            token_index.setdefault(tok, []).append(i)
+    with OPEN_INDEX_LOCK:
+        OPEN_INDEX_STATE.update({
+            "items": items, "by_clean": by_clean, "token_index": token_index,
+            "loaded": True, "fetched_at": fetched_at, "failed_at": 0.0,
+        })
+
+
+def ensure_open_index_loaded(max_age: float = OPEN_INDEX_TTL_SECONDS) -> list:
+    """Lazy-loads the open m3u8 index (memory -> disk -> network). Never raises."""
+    with OPEN_INDEX_LOCK:
+        now = time.time()
+        if OPEN_INDEX_STATE["loaded"] and now - OPEN_INDEX_STATE["fetched_at"] < max_age:
+            return OPEN_INDEX_STATE["items"]
+        if now - OPEN_INDEX_STATE["failed_at"] < OPEN_INDEX_FAILURE_TTL_SECONDS:
+            return OPEN_INDEX_STATE["items"]  # recent failure: don't hammer the source
+        if OPEN_INDEX_STATE["fetching"]:
+            return OPEN_INDEX_STATE["items"]
+        OPEN_INDEX_STATE["fetching"] = True
+    try:
+        disk = _read_open_index_disk(max_age)
+        if disk:
+            items, fetched_at = disk
+        else:
+            items, fetched_at = _fetch_open_index_items()
+        _set_open_index_state(items, fetched_at)
+        return items
+    except Exception as e:
+        print("Open m3u8 index fetch error:", e)
+        with OPEN_INDEX_LOCK:
+            OPEN_INDEX_STATE["failed_at"] = time.time()
+        return OPEN_INDEX_STATE["items"]
+    finally:
+        with OPEN_INDEX_LOCK:
+            OPEN_INDEX_STATE["fetching"] = False
+
+
+def search_open_index_m3u8_streams(query: str, tvg_id: str = "", limit: int = 8, target_country: str = "", strict: bool = False) -> list:
+    """
+    Specialized web channel search over the open public m3u8 index (iptv-org).
+    The index is fetched once per day and shared across all searches, so each
+    query costs zero network I/O. Scoring/relevance is identical to the main
+    indexed catalog search.
+    """
+    ensure_open_index_loaded()
+    with OPEN_INDEX_LOCK:
+        items = list(OPEN_INDEX_STATE["items"])
+        by_clean = dict(OPEN_INDEX_STATE["by_clean"])
+        token_index = dict(OPEN_INDEX_STATE["token_index"])
+
+    if not items or (not (query or "").strip() and not tvg_id):
+        return []
+
+    target_country = (target_country or "").strip().upper() or extract_country(query)
+    q_toks, _q_nums = clean_channel_tokens(query)
+    clean_q = " ".join(q_toks)
+    min_thresh = 0.70 if strict else 0.45
+
+    candidate_idx = []
+    if clean_q and clean_q in by_clean:
+        candidate_idx.extend(by_clean[clean_q])
+    for tok in q_toks:
+        candidate_idx.extend(token_index.get(tok, []))
+    # Fallback substring scan over the whole index (pure CPU, no network)
+    if len(candidate_idx) < 40 and clean_q:
+        fallback_toks = [tok for tok in q_toks if len(tok) >= 3]
+        for i, item in enumerate(items):
+            c = item["clean"]
+            if clean_q in c or c in clean_q or any(tok in c for tok in fallback_toks):
+                candidate_idx.append(i)
+
+    scored = []
+    seen_idx = set()
+    for i in candidate_idx:
+        if i in seen_idx:
+            continue
+        seen_idx.add(i)
+        item = items[i]
+        score, meta = calculate_channel_match_score(
+            query, item["name"], item.get("tvg_id", ""), item.get("category", ""), target_country, strict=strict
+        )
+        if tvg_id and item.get("tvg_id") and item["tvg_id"].lower() == tvg_id.lower():
+            score, meta = 1.0, dict(meta, match_level="exact")
+        if score >= min_thresh:
+            scored.append((score, item, meta))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    out = []
+    for score, item, meta in scored[:max(1, limit)]:
+        c_badge = meta.get("country_badge") or get_country_badge(extract_country(item["name"], item.get("tvg_id", ""), item.get("category", "")))
+        out.append({
+            "id": str(uuid.uuid4()),
+            "query_name": query,
+            "name": item["name"],
+            "tvg_id": item.get("tvg_id", ""),
+            "category": item.get("category", "Live TV"),
+            "url": item["url"],
+            "quality": item.get("quality", "HD"),
+            "user_agent": "",
+            "referrer": "",
+            "source": "🌐 Open Index",
+            "provider": "iptv-org Open Index",
+            "confidence": round(score * 100),
+            "match_confidence": round(score * 100),
+            "country_code": meta.get("country", ""),
+            "country_badge": c_badge,
+            "match_level": meta.get("match_level", "strong"),
+            "logo": fast_lookup_logo(item["name"], item.get("tvg_id", "")),
+            "status": "unknown",
+            "latency_ms": 0,
+        })
+    return out
+
 
 def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: bool = True, target_country: str = "") -> list:
     """
@@ -1149,8 +1355,23 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
         return []
 
     target_country = (target_country or "").strip().upper() or extract_country(query)
-    search_q = f"{query} {target_country} m3u8 live stream iptv" if target_country else f"{query} m3u8 live stream iptv"
-    post_data = urllib.parse.urlencode({"q": search_q}).encode("utf-8")
+
+    # Serve recent identical searches from cache: repeated queries cost zero network I/O
+    cache_key = (query.strip().lower(), int(limit), bool(check_live), target_country)
+    cached = WEB_SEARCH_RESULT_CACHE.get(cache_key)
+    if cached and time.time() - cached["at"] < WEB_SEARCH_CACHE_TTL_SECONDS:
+        return [dict(r) for r in cached["results"]]
+
+    # Specialized open m3u8 index first: one shared cached download covers all
+    # queries, so this typically adds the bulk of the hits at no per-query cost.
+    results = search_open_index_m3u8_streams(query, limit=limit, target_country=target_country)
+    seen_urls = {r["url"] for r in results}
+    discovered_candidates = []
+
+    # Up to 2 scrape variants (with and without the country bias) for more coverage
+    search_variants = [f"{query} m3u8 live stream iptv"]
+    if target_country and target_country != query.strip().upper():
+        search_variants.insert(0, f"{query} {target_country} m3u8 live stream iptv")
     url = "https://html.duckduckgo.com/html/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -1159,13 +1380,18 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
         "Accept-Language": "en-US,en;q=0.7",
     }
 
-    discovered_candidates = []
-    seen_urls = set()
+    html_parts = []
+    for search_q in search_variants[:2]:
+        try:
+            post_data = urllib.parse.urlencode({"q": search_q}).encode("utf-8")
+            req = urllib.request.Request(url, data=post_data, headers=headers)
+            with urllib.request.urlopen(req, timeout=8.5) as resp:
+                html_parts.append(resp.read().decode("utf-8", errors="ignore"))
+        except Exception:
+            pass
 
     try:
-        req = urllib.request.Request(url, data=post_data, headers=headers)
-        with urllib.request.urlopen(req, timeout=8.5) as resp:
-            html_text = resp.read().decode("utf-8", errors="ignore")
+        html_text = "\n".join(html_parts)
 
         # 1. Direct .m3u8 links in HTML text or snippets
         direct_m3u8s = re.findall(r'https?://[^\s"\'<>]+?\.m3u8(?:\?[^\s"\'<>]*)?', html_text)
@@ -1245,14 +1471,18 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
     except Exception:
         pass
 
-    results = []
+    web_added = 0
+    max_total = max(limit, 12)
     for cand in discovered_candidates:
+        if cand["url"] in seen_urls:
+            continue
         score, meta = calculate_channel_match_score(
             query, cand["name"], cand.get("tvg_id", ""), cand.get("category", ""), target_country=target_country
         )
         if score < 0.45:
             continue
         c_badge = meta.get("country_badge") or get_country_badge(extract_country(cand["name"], cand.get("tvg_id", ""), cand.get("category", "")))
+        seen_urls.add(cand["url"])
         results.append({
             "id": str(uuid.uuid4()),
             "query_name": query,
@@ -1273,7 +1503,8 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
             "status": "unknown",
             "latency_ms": 0,
         })
-        if len(results) >= limit:
+        web_added += 1
+        if web_added >= limit or len(results) >= max_total:
             break
 
     if check_live and results:
@@ -1292,6 +1523,11 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
             return (status_rank, tier, -conf, lat if lat > 0 else 9999)
 
         results.sort(key=_web_rank_key)
+
+    WEB_SEARCH_RESULT_CACHE[cache_key] = {"at": time.time(), "results": [dict(r) for r in results]}
+    if len(WEB_SEARCH_RESULT_CACHE) > WEB_SEARCH_CACHE_MAX:
+        for old_key in sorted(WEB_SEARCH_RESULT_CACHE, key=lambda k: WEB_SEARCH_RESULT_CACHE[k]["at"])[:len(WEB_SEARCH_RESULT_CACHE) // 2]:
+            WEB_SEARCH_RESULT_CACHE.pop(old_key, None)
 
     return results
 
@@ -2255,10 +2491,11 @@ def _expand_channel_aliases(query: str) -> list:
     return variants[:3]
 
 
-def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, target_country: str = "", strict: bool = True) -> list:
+def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, include_openindex: bool = True, target_country: str = "", strict: bool = True) -> list:
     """
     Parallel multi-source channel search across:
     - 35,000+ indexed FAST/IPTV-Org/Free-TV streams (with alias expansion)
+    - Open public m3u8 web index (shared daily-cached download)
     - Televizo Live Extractor
     - YouTube Live discovery
     - RuTube Live discovery
@@ -2303,10 +2540,21 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
             return []
         return search_live_web_for_channel_streams(query, limit=4, check_live=False, target_country=target_country)
 
+    def _run_openindex():
+        if not include_openindex:
+            return []
+        res = []
+        for q_var in aliases:
+            hits = search_open_index_m3u8_streams(q_var, tvg_id=tvg_id, limit=limit, target_country=target_country, strict=strict)
+            res.extend(hits)
+        return res
+
     # Execute all discovery engines in parallel for 3-4x faster search
     futures = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as search_pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as search_pool:
         futures["indexed"] = search_pool.submit(_run_indexed)
+        if include_openindex:
+            futures["openindex"] = search_pool.submit(_run_openindex)
         if include_televizo and not IS_LIGHTWEIGHT_PANEL:
             futures["televizo"] = search_pool.submit(_run_televizo)
         elif include_televizo:
@@ -2334,9 +2582,10 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
     yt_candidates = _safe_res("yt")
     indexed_candidates = _safe_res("indexed")
     web_candidates = _safe_res("web")
+    openindex_candidates = _safe_res("openindex")
 
     all_candidates = []
-    for c in televizo_candidates + indexed_candidates + rutube_candidates + yt_candidates + web_candidates:
+    for c in televizo_candidates + indexed_candidates + openindex_candidates + rutube_candidates + yt_candidates + web_candidates:
         if c.get("url") and c["url"] not in seen_urls:
             seen_urls.add(c["url"])
             all_candidates.append(c)
@@ -4474,7 +4723,8 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             include_yt = qs.get("include_yt", ["1"])[0] == "1"
             include_rutube = qs.get("include_rutube", ["1"])[0] == "1"
             include_televizo = qs.get("include_televizo", ["1"])[0] == "1"
-            sources = find_stream_sources_by_name(q, tvg_id, limit=10, check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, target_country=country, strict=strict)
+            include_openindex = qs.get("include_openindex", ["1"])[0] == "1"
+            sources = find_stream_sources_by_name(q, tvg_id, limit=10, check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, include_openindex=include_openindex, target_country=country, strict=strict)
             self.send_json({"sources": sources})
             return
 

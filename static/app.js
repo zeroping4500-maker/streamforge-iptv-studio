@@ -936,7 +936,7 @@ async function runDedicatedSourceSearch() {
   const includeRutube = (document.getElementById('sourceFinderIncludeRutube') && document.getElementById('sourceFinderIncludeRutube').checked) ? '1' : '0';
   const includeTelevizo = (document.getElementById('sourceFinderIncludeTelevizo') && document.getElementById('sourceFinderIncludeTelevizo').checked) ? '1' : '0';
   const container = document.getElementById('sourceFinderResults');
-  container.innerHTML = `<div class="empty-state" style="padding:28px;"><p>🔎 Searching 38,000+ indexed streams, Televizo, RuTube, YouTube Live & web for "<strong>${escapeHtml(q)}</strong>"...</p></div>`;
+  container.innerHTML = `<div class="empty-state" style="padding:28px;"><p>🔎 Searching 38,000+ indexed streams, the open m3u8 web index, Televizo, RuTube, YouTube Live & web for "<strong>${escapeHtml(q)}</strong>"...</p></div>`;
 
   try {
     const data = await api(`/api/sources/search?q=${encodeURIComponent(q)}&probe=${probe}&include_web=${includeWeb}&include_yt=${includeYt}&include_rutube=${includeRutube}&include_televizo=${includeTelevizo}&country=${encodeURIComponent(country)}&strict=${strict}`);
@@ -1083,7 +1083,7 @@ async function runGithubRepoSearch(customQuery = '') {
     btn.disabled = true;
     btn.textContent = '🔎 Searching GitHub, YouTube & Web...';
   }
-  wrap.innerHTML = `<div class="empty-state" style="padding:28px;"><p>🐙 Searching GitHub IPTV repositories, YouTube Live & live web for "<strong>${escapeHtml(q)}</strong>"...</p></div>`;
+  wrap.innerHTML = `<div class="empty-state" style="padding:28px;"><p>🌐 Searching the open m3u8 web index, GitHub IPTV repositories, YouTube Live & live web for "<strong>${escapeHtml(q)}</strong>"...</p></div>`;
 
   try {
     const [ghRes, webRes, ytRes] = await Promise.allSettled([
@@ -1689,7 +1689,7 @@ async function searchSourcesInsideChannelModal() {
   const statusEl = document.getElementById('modalSourceStatusText');
 
   box.classList.remove('hidden');
-  statusEl.textContent = `🔎 Searching 38,000+ indexed streams, Televizo, RuTube & YouTube for "${q}"...`;
+  statusEl.textContent = `🔎 Searching 38,000+ indexed streams, the open m3u8 web index, Televizo, RuTube & YouTube for "${q}"...`;
   list.innerHTML = '';
 
   try {
