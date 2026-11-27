@@ -75,12 +75,105 @@ def enabled() -> bool:
 
 
 def public_config() -> dict:
+    # Deliberately no baseUrl: the browser never learns where Neon Auth lives;
+    # every auth call goes through the server-side proxy endpoints in admin.py.
     return {
         "enabled": enabled(),
-        "baseUrl": base_url(),
         "appName": app_name(),
         "methods": ["email_otp", "google"],
     }
+
+
+# ---------------------------------------------------------------------------
+# Server-side Neon Auth proxy (the browser never talks to Neon Auth directly)
+# ---------------------------------------------------------------------------
+
+def _neon_headers(extra=None):
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "zemyiptv-admin/1.0",
+        "Accept": "application/json",
+    }
+    if extra:
+        headers.update(extra)
+    return headers
+
+
+def neon_request(path, payload=None, method="POST", cookie_header=None, timeout=10):
+    """Call the Neon Auth server API. Returns (status, parsed body or None, set-cookie list)."""
+    headers = _neon_headers({"Cookie": cookie_header} if cookie_header else None)
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(base_url() + path, headers=headers, method=method, data=data)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            status, raw = resp.status, resp.read()
+            cookies = resp.headers.get_all("Set-Cookie") or []
+    except urllib.error.HTTPError as exc:
+        status, raw = exc.code, exc.read()
+        cookies = exc.headers.get_all("Set-Cookie") or [] if exc.headers else []
+    except Exception as exc:
+        raise AuthError(503, "auth_service_unreachable", f"Authentication service unreachable: {exc}")
+    try:
+        body = json.loads(raw.decode("utf-8")) if raw else None
+    except ValueError:
+        body = None
+    return status, body, [c for c in cookies if c]
+
+
+def _session_token(payload):
+    if not isinstance(payload, dict):
+        return ""
+    session = payload.get("session") if isinstance(payload.get("session"), dict) else {}
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    return payload.get("token") or session.get("token") or data.get("token") or ""
+
+
+def _neon_error(status, body, fallback):
+    message, code = fallback, "auth_failed"
+    if isinstance(body, dict):
+        message = body.get("message") or body.get("error") or message
+        code = body.get("code") or code
+    if status in (400, 401):
+        return AuthError(401, code, message)
+    if status == 429:
+        return AuthError(429, "rate_limited", "Too many attempts, wait a few minutes")
+    return AuthError(502, code, f"{fallback} (authentication service returned {status})")
+
+
+def send_otp(email):
+    status, body, _ = neon_request("/email-otp/send-verification-otp", {"email": email, "type": "sign-in"})
+    if status != 200:
+        raise _neon_error(status, body, "The code could not be sent")
+    return True
+
+
+def verify_otp(email, otp):
+    """Exchange an emailed code for a Neon Auth session token (server-side only)."""
+    status, body, cookies = neon_request("/sign-in/email-otp", {"email": email, "otp": otp})
+    token = _session_token(body)
+    if status == 200 and not token and cookies:
+        # The session arrived as cookies instead of a JSON token: replay them
+        # server-side against get-session to recover the token.
+        jar = "; ".join(c.split(";")[0] for c in cookies)
+        status2, body2, _ = neon_request("/get-session", method="GET", cookie_header=jar, timeout=8)
+        token = _session_token(body2)
+    if status != 200 or not token:
+        raise _neon_error(status, body, "That code was not accepted")
+    return token
+
+
+def google_signin_url(origin):
+    status, body, _ = neon_request("/sign-in/social", {"provider": "google", "callbackURL": origin + "/admin"})
+    url = body.get("url") if isinstance(body, dict) else None
+    if status != 200 or not url:
+        raise _neon_error(status, body, "Google sign-in is not available right now")
+    return url
+
+
+def resume_redirect_url():
+    """Target for /api/auth/resume: the browser follows the 302 with its Neon
+    session cookie (set by the OAuth callback) so the URL stays out of the page."""
+    return base_url() + "/get-session"
 
 
 # ---------------------------------------------------------------------------

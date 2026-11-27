@@ -4713,7 +4713,8 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed = urllib.parse.urlparse(self.path)
-            if not parsed.path.startswith("/api/admin") and not self._auth_gate(parsed.path, "GET"):
+            if not parsed.path.startswith("/api/admin") and not parsed.path.startswith("/api/auth/") \
+                    and not self._auth_gate(parsed.path, "GET"):
                 return
             self._handle_get()
         except (BrokenPipeError, ConnectionResetError):
@@ -5161,7 +5162,8 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
     def do_POST(self):
         try:
             parsed = urllib.parse.urlparse(self.path)
-            if not parsed.path.startswith("/api/admin") and not self._auth_gate(parsed.path, "POST"):
+            if not parsed.path.startswith("/api/admin") and not parsed.path.startswith("/api/auth/") \
+                    and not self._auth_gate(parsed.path, "POST"):
                 return
             self._handle_post()
         except (BrokenPipeError, ConnectionResetError):
@@ -5176,7 +5178,7 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
     def _handle_post(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
-        if path.startswith("/api/admin"):
+        if path.startswith("/api/admin") or path.startswith("/api/auth/"):
             admin.handle(self, "POST", path, parsed.query)
             return
         body = self.read_json()

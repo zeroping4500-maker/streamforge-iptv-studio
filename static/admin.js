@@ -133,47 +133,28 @@
   }
 
   async function sendCode(email) {
-    const url = state.cfg.baseUrl + "/email-otp/send-verification-otp";
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, type: "sign-in" }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.message || `Could not send the code (HTTP ${response.status})`);
+    const { ok, status, payload } = await apiPost("/api/auth/otp/send", { email });
+    if (!ok) {
+      throw new Error((payload && payload.error) || `Could not send the code (HTTP ${status})`);
     }
   }
 
   async function verifyCode(email, otp) {
-    const url = state.cfg.baseUrl + "/sign-in/email-otp";
-    const response = await fetch(url, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, otp }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(payload.message || "That code was not accepted");
+    const { ok, status, payload } = await apiPost("/api/auth/otp/verify", { email, otp });
+    if (!ok) {
+      throw new Error((payload && payload.error) || "That code was not accepted");
     }
-    let token = payload.token;
-    if (!token) {
-      token = await sessionToken();
-    }
+    const token = payload && payload.token;
+    if (!token) throw new Error("Sign-in service returned no session token");
     return token;
   }
 
-  async function sessionToken() {
-    try {
-      const response = await fetch(state.cfg.baseUrl + "/get-session", { credentials: "include" });
-      if (!response.ok) return null;
-      const data = await response.json();
-      return (data && data.session && data.session.token) || (data && data.token) || null;
-    } catch (err) {
-      return null;
+  async function googleStart() {
+    const { ok, status, payload } = await apiPost("/api/auth/google/start", {});
+    if (!ok || !payload || !payload.url) {
+      throw new Error((payload && payload.error) || `Google sign-in is unavailable (HTTP ${status})`);
     }
+    return payload.url;
   }
 
   function bindAuth() {
@@ -230,18 +211,9 @@
     $("#googleBtn").addEventListener("click", async () => {
       busy($("#googleBtn"), true, "Opening Google…");
       try {
-        const response = await fetch(state.cfg.baseUrl + "/sign-in/social", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ provider: "google", callbackURL: location.origin + "/admin" }),
-        });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload.url) {
-          throw new Error(payload.message || "Google sign-in is not available for this project");
-        }
+        const url = await googleStart();
         sessionStorage.setItem("zemy.pendingAuth", "google");
-        location.href = payload.url;
+        location.href = url;
       } catch (err) {
         setNote(err.message, "bad");
         busy($("#googleBtn"), false);
@@ -250,16 +222,36 @@
   }
 
   async function resumeGoogle() {
-    const token = await sessionToken();
+    // Same-origin fetch through the 302 proxy: the browser carries the Neon
+    // session cookie from the OAuth callback; the auth host URL stays hidden.
+    let token = null;
+    try {
+      const response = await fetch("/api/auth/resume", { redirect: "follow", credentials: "same-origin" });
+      if (response.ok) {
+        const data = await response.json().catch(() => null);
+        token = (data && (data.token || (data.session && data.session.token))) || null;
+      }
+    } catch (err) {
+      token = null;
+    }
     if (!token) return false;
     try {
       await exchangeToken(token);
       return true;
     } catch (err) {
-      setNote(err.message, "bad");
+      setNote(friendlyAuthError(err), "bad");
       sessionStorage.removeItem("zemy.pendingAuth");
       return false;
     }
+  }
+
+  function friendlyAuthError(err) {
+    const raw = String((err && err.message) || err || "");
+    if (raw.includes("account_not_linked")) {
+      return "This Google account has no admin linked yet. Sign in once with the email code, then Google will work.";
+    }
+    if (/expired|invalid/i.test(raw)) return "Your session expired — sign in again.";
+    return raw || "Sign-in failed";
   }
 
   // ------------------------------------------------------------- panel views
@@ -692,12 +684,7 @@
       setNote("Neon Auth is not configured on this server.", "bad");
       return;
     }
-    try {
-      const host = new URL(state.cfg.baseUrl, location.origin).host;
-      $("#authHost").textContent = host || state.cfg.appName;
-    } catch (err) {
-      $("#authHost").textContent = state.cfg.appName || "Neon Auth";
-    }
+    $("#authHost").textContent = state.cfg.appName || "ZEMYIPTV sign-in";
     const me = await apiGet("/api/admin/session");
     if (me.ok && me.payload && me.payload.authenticated) {
       state.admin = me.payload.admin;

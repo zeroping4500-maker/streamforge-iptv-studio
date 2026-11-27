@@ -131,6 +131,23 @@ try:
     st, _, body = req("GET", "/api/proxy-stream?url=" + urllib.parse.quote("https://raw.githubusercontent.com/some/repo/master/not-a-stream.m3u8"), cookie=cookie)
     check("proxy to public host not blocked by guard", st != 400, (st, body[:80]))
 
+    # --- auth proxy endpoints (no Neon Auth host exposed, routes wired) ---
+    st, _, body = req("GET", "/api/auth/config")
+    cfg = json.loads(body.decode("utf-8") or "{}")
+    check("auth/config hides baseUrl", st == 200 and "baseUrl" not in cfg and "neonauth" not in body.decode("utf-8"), (st, body[:120]))
+    st, _, body = req("POST", "/api/auth/otp/send", headers={"X-Requested-With": "zemy-admin"})
+    check("auth/otp/send invalid email -> 400", st == 400 and b"invalid_email" in body, (st, body[:80]))
+    st, _, body = req("POST", "/api/auth/otp/send", headers={"X-Requested-With": "zemy-admin", "Content-Type": "application/json"})
+    check("auth/otp/send no email -> 400", st == 400, (st, body[:80]))
+    st, _, body = req("POST", "/api/auth/otp/verify", headers={"X-Requested-With": "zemy-admin"})
+    check("auth/otp/verify routed (not 404)", st in (400, 401, 503) and st != 404, (st, body[:80]))
+    st, _, body = req("POST", "/api/auth/google/start", headers={"X-Requested-With": "zemy-admin"})
+    check("auth/google/start routed (not 404)", st != 404, (st, body[:80]))
+    st, hd, _ = req("GET", "/api/auth/resume")
+    check("auth/resume -> 302 to configured base", st == 302 and (hd.get("Location") or "").startswith("http://127.0.0.1:3100/"), (st, hd.get("Location")))
+    st, _, body = req("POST", "/api/auth/nonsense", headers={"X-Requested-With": "zemy-admin"})
+    check("auth unknown endpoint -> 404", st == 404, (st, body[:80]))
+
     # cleanup
     auth.delete_session(sid)
     with store.get_db() as conn:

@@ -7,6 +7,7 @@ ride a logged-in admin's cookie.
 """
 
 import json
+import re
 import threading
 import time
 import urllib.parse
@@ -235,11 +236,45 @@ def _set_provider_enabled(provider_id, enabled):
 # Dispatch
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Panel routing
+# ---------------------------------------------------------------------------
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+
+# (limit per 10 min) for the pre-authentication auth endpoints. The global
+# api-write limit and the same-origin/marker checks in app.py's gate already
+# apply to these; these are the tighter per-endpoint ceilings.
+_AUTH_LIMITS = {
+    "/api/auth/otp/send": 5,
+    "/api/auth/otp/verify": 10,
+    "/api/auth/google/start": 12,
+}
+
+
+def _public_admin(identity):
+    """The panel only needs to know who it is and what it may do."""
+    return {
+        "email": identity.get("email", ""),
+        "role": identity.get("role", ""),
+    }
+
+
+def _request_origin(handler) -> str:
+    proto = "https" if _is_https(handler) else "http"
+    host = (handler.headers.get("X-Forwarded-Host") or handler.headers.get("Host") or "localhost").strip()
+    return f"{proto}://{host}"
+
+
 def handle(handler, method, path, query) -> bool:
-    """Handle /api/auth/config and /api/admin/*. Returns True when handled."""
+    """Handle /api/auth/* and /api/admin/*. Returns True when handled."""
     if path == "/api/auth/config" and method == "GET":
         _send(handler, auth.public_config())
         return True
+    if path == "/api/auth/resume" and method == "GET":
+        return _resume(handler)
+    if path.startswith("/api/auth/") and method == "POST":
+        return _handle_auth_post(handler, path)
     if not path.startswith("/api/admin"):
         return False
 
@@ -256,13 +291,65 @@ def handle(handler, method, path, query) -> bool:
         return True
 
 
+def _resume(handler):
+    """302 the browser to the Neon Auth session check. The browser follows it
+    with the session cookie the OAuth callback set, so the auth host URL never
+    needs to appear in the page source or the public config."""
+    try:
+        handler.send_response(302)
+        handler.send_header("Location", auth.resume_redirect_url())
+        handler.send_header("Content-Length", "0")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("X-Content-Type-Options", "nosniff")
+        handler.end_headers()
+    except (BrokenPipeError, ConnectionResetError):
+        pass
+    return True
+
+
+def _handle_auth_post(handler, path):
+    ip = _client_ip(handler)
+    limit = _AUTH_LIMITS.get(path)
+    if limit and not _rate_ok(ip, "auth:" + path, limit):
+        _error(handler, 429, "rate_limited", "Too many attempts, wait a few minutes")
+        return True
+    body = handler.read_json() or {}
+    try:
+        if path == "/api/auth/otp/send":
+            email = (body.get("email") or "").strip().lower()[:200]
+            if not _EMAIL_RE.match(email):
+                _error(handler, 400, "invalid_email", "Enter a valid email address")
+                return True
+            auth.send_otp(email)
+            _send(handler, {"ok": True})
+            return True
+        if path == "/api/auth/otp/verify":
+            email = (body.get("email") or "").strip().lower()[:200]
+            otp = (body.get("otp") or "").strip()[:12]
+            if not email or not otp:
+                _error(handler, 400, "missing_fields", "Email and code are required")
+                return True
+            token = auth.verify_otp(email, otp)
+            _send(handler, {"token": token})
+            return True
+        if path == "/api/auth/google/start":
+            url = auth.google_signin_url(_request_origin(handler))
+            _send(handler, {"url": url})
+            return True
+    except auth.AuthError as exc:
+        _error(handler, exc.status, exc.code, exc.message)
+        return True
+    _error(handler, 404, "not_found", "Unknown auth endpoint")
+    return True
+
+
 def _handle_get(handler, path, query, ip):
     if path == "/api/admin/session":
         identity = current_admin(handler)
         if not identity:
             _send(handler, {"authenticated": False}, 200)
             return True
-        _send(handler, {"authenticated": True, "admin": identity})
+        _send(handler, {"authenticated": True, "admin": _public_admin(identity)})
         return True
 
     identity = current_admin(handler)
@@ -272,7 +359,7 @@ def _handle_get(handler, path, query, ip):
 
     params = urllib.parse.parse_qs(query or "")
     if path == "/api/admin/overview":
-        _send(handler, {"admin": identity, **_overview()})
+        _send(handler, {"admin": _public_admin(identity), **_overview()})
         return True
     if path == "/api/admin/playlists":
         _send(handler, {"playlists": _playlists()})
@@ -327,7 +414,7 @@ def _handle_post(handler, path, ip):
             return True
         sid, expires = auth.create_session(identity, ip, handler.headers.get("User-Agent", ""))
         auth.audit("admin.signin", identity.get("email", ""), identity, ip)
-        _send(handler, {"authenticated": True, "admin": identity, "expiresAt": expires},
+        _send(handler, {"authenticated": True, "admin": _public_admin(identity), "expiresAt": expires},
               200, cookies=[_cookie_header(sid, expires, handler)])
         return True
 
