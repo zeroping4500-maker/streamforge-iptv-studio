@@ -4636,10 +4636,14 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "Unsupported player host"}, 400)
                 return
             provider_href = ""
+            frame_src = target
             if host.endswith("dembed.st"):
+                # dembed.st only serves players to thedaddy.li referrers (403 + "Not
+                # allowed to stream" otherwise), so frame their watch page instead.
                 cid = (urllib.parse.parse_qs(parsed_target.query).get("id") or [""])[0]
                 if re.fullmatch(r"\d+", cid):
                     provider_href = f"https://thedaddy.li/stream/stream-{cid}.php"
+                    frame_src = provider_href
             safe_label = html.escape(label)
             provider_link = (
                 f'<a class="btn ghost" href="{html.escape(provider_href)}" '
@@ -4679,12 +4683,12 @@ background:linear-gradient(135deg,#2563eb,#3b82f6)}}
 <body>
 <header><h1>{safe_label}</h1><a href="/">ZEMYIPTV</a></header>
 <main>
-<div class="frame-wrap"><iframe src="{html.escape(target)}" title="{safe_label}"
+<div class="frame-wrap"><iframe src="{html.escape(frame_src)}" title="{safe_label}"
 allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen
 referrerpolicy="origin"></iframe></div>
 <div class="actions">{provider_link}</div>
-<p class="hint">This page frames the provider's own player so it loads one level deep.
-If it still says the player only works when embedded, use the provider button above.</p>
+<p class="hint">This page loads the provider's own watch page, which embeds the player with
+the referrer it requires. If nothing plays, open it with the button above.</p>
 </main>
 </body>
 </html>

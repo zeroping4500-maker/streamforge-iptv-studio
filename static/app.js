@@ -2437,6 +2437,20 @@ function loadHls() {
   return hlsLoaderPromise;
 }
 
+// dembed.st serves its player only to pages referred from thedaddy.li; from any
+// other referrer it answers 403 and renders "Not allowed to stream". Their own
+// watch page is the sanctioned embedder, so map a dembed URL to it.
+function providerWatchUrl(target) {
+  try {
+    const parsed = new URL(target, window.location.href);
+    if (!/(^|\.)dembed\.st$/i.test(parsed.hostname)) return '';
+    const id = parsed.searchParams.get('id') || '';
+    return /^\d+$/.test(id) ? `https://thedaddy.li/stream/stream-${id}.php` : '';
+  } catch (_) {
+    return '';
+  }
+}
+
 function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent = '', playMode = '') {
   const dock = document.getElementById('livePlayerDock');
   const video = document.getElementById('hlsVideo');
@@ -2491,7 +2505,11 @@ function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent =
     const frame = document.createElement('iframe');
     frame.id = 'embedPlayerFrame';
     frame.className = 'embed-player-frame';
-    frame.src = url;
+    // dembed.st answers 403 and "Not allowed to stream" unless its own request
+    // carries a thedaddy.li referrer, which a frame we create never has. Its watch
+    // page embeds the player with that referrer, so frame that and let it embed.
+    const frameSrc = providerWatchUrl(url) || url;
+    frame.src = frameSrc;
     frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
     frame.setAttribute('allowfullscreen', '');
     // The provider player refuses to play when it sees no referrer, so send our origin
@@ -2502,7 +2520,7 @@ function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent =
     const openLink = document.createElement('a');
     openLink.id = 'embedOpenLink';
     openLink.className = 'embed-open-link';
-    openLink.href = `/watch?u=${encodeURIComponent(url)}&name=${encodeURIComponent(name || '')}`;
+    openLink.href = `/watch?u=${encodeURIComponent(frameSrc)}&name=${encodeURIComponent(name || '')}`;
     openLink.target = '_blank';
     openLink.rel = 'noopener';
     openLink.textContent = 'Open player in its own page';
