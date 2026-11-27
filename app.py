@@ -10,6 +10,7 @@ Fixes & Features:
 - Public Accessible URL (SSH Tunnel + LAN IPv4), 3x/Day Health Monitor, Xtream Codes Importer with Dual Deduplication
 """
 
+import base64
 import concurrent.futures
 import difflib
 import gc
@@ -44,6 +45,15 @@ DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
 
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
+# Render's free plan has no disk: the SQLite file and caches are wiped on every
+# deploy/restart, so imported playlists vanish. When a GitHub token is present we
+# mirror the DB to a side branch (not main, which would redeploy) and restore it
+# at boot. Without the token the app runs exactly as before, on ephemeral storage.
+STATE_SYNC_REPO = os.environ.get("STATE_SYNC_REPO", "zeroping4500-maker/streamforge-iptv-studio")
+STATE_SYNC_BRANCH = os.environ.get("STATE_SYNC_BRANCH", "zemyiptv-state")
+STATE_SYNC_PATH = "state/iptv_studio.db"
+STATE_SYNC_TOKEN = os.environ.get("STATE_SYNC_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
+STATE_SYNC_INTERVAL = int(os.environ.get("STATE_SYNC_INTERVAL", "90"))
 # Provider pages allowed inside the /watch shell (their players refuse foreign frames)
 PLAYER_EMBED_HOSTS = ("dembed.st", "thedaddy.li", "pflix.net", "dlhd.dad")
 # CDN edges that answer 403 unless the request carries the provider site's Referer
@@ -51,6 +61,9 @@ PROVIDER_DEFAULT_REFERRERS = {
     "wonvt.st": "https://tvnow.st/",
     "tvnow.st": "https://tvnow.st/",
 }
+# Host -> referrer that last worked, learned by the probe and the proxy
+REFERRER_HINTS = {}
+REFERRER_HINTS_LOCK = threading.Lock()
 IS_LIGHTWEIGHT_PANEL = bool(
     os.environ.get("RENDER")
     or os.environ.get("RENDER_EXTERNAL_URL")
@@ -3361,6 +3374,99 @@ def get_db():
     return conn
 
 
+def state_sync_enabled() -> bool:
+    return bool(STATE_SYNC_TOKEN and STATE_SYNC_REPO)
+
+
+def _github_api(method: str, path: str, payload=None):
+    url = f"https://api.github.com/repos/{STATE_SYNC_REPO}{path}"
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urllib.request.Request(url, data=data, method=method, headers={
+        "Authorization": f"Bearer {STATE_SYNC_TOKEN}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "zemyiptv-state-sync",
+    })
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        body = resp.read()
+    return json.loads(body) if body else {}
+
+
+def restore_state_from_github() -> bool:
+    """Pull the last mirrored DB before the schema is created on an empty disk."""
+    if not state_sync_enabled() or DB_PATH.exists():
+        return False
+    try:
+        blob = _github_api("GET", f"/contents/{STATE_SYNC_PATH}?ref={STATE_SYNC_BRANCH}")
+        content = base64.b64decode(blob.get("content", ""))
+        if len(content) < 1024:
+            return False
+        tmp = DB_PATH.with_suffix(".restore")
+        tmp.write_bytes(content)
+        tmp.replace(DB_PATH)
+        print(f"[state] restored {len(content)} bytes from {STATE_SYNC_BRANCH}")
+        return True
+    except Exception as exc:
+        print(f"[state] restore skipped: {exc}")
+        return False
+
+
+def snapshot_state_to_github() -> bool:
+    """Mirror the SQLite file to a side branch; main is never touched, so this
+    cannot trigger a redeploy loop."""
+    if not state_sync_enabled() or not DB_PATH.exists():
+        return False
+    try:
+        with sqlite3.connect(DB_PATH, timeout=15.0) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        content = base64.b64encode(DB_PATH.read_bytes()).decode()
+        try:
+            existing = _github_api("GET", f"/contents/{STATE_SYNC_PATH}?ref={STATE_SYNC_BRANCH}")
+            sha = existing.get("sha")
+        except Exception:
+            try:
+                main_ref = _github_api("GET", "/git/ref/heads/main")
+                _github_api("POST", "/git/refs", {
+                    "ref": f"refs/heads/{STATE_SYNC_BRANCH}",
+                    "sha": main_ref["object"]["sha"],
+                })
+            except Exception:
+                pass
+            sha = None
+        payload = {
+            "message": f"state snapshot {int(time.time())}",
+            "content": content,
+            "branch": STATE_SYNC_BRANCH,
+        }
+        if sha:
+            payload["sha"] = sha
+        _github_api("PUT", f"/contents/{STATE_SYNC_PATH}", payload)
+        return True
+    except Exception as exc:
+        print(f"[state] snapshot failed: {exc}")
+        return False
+
+
+def start_state_sync() -> None:
+    """Snapshot whenever the DB changed, so an import survives the next deploy."""
+    if not state_sync_enabled():
+        return
+
+    def loop():
+        last = 0.0
+        while True:
+            time.sleep(STATE_SYNC_INTERVAL)
+            try:
+                stamp = DB_PATH.stat().st_mtime if DB_PATH.exists() else 0.0
+                if stamp > last:
+                    if snapshot_state_to_github():
+                        last = stamp
+            except Exception:
+                pass
+
+    threading.Thread(target=loop, name="state-sync", daemon=True).start()
+
+
 def init_db():
     with get_db() as conn:
         conn.executescript(
@@ -3832,6 +3938,60 @@ def _is_html_or_error_body(chunk: bytes, content_type: str = "") -> bool:
     return False
 
 
+def _referer_candidates(url: str, referrer: str = "", user_agent: str = "") -> list:
+    """
+    Referrers a hotlink-protected edge may accept, best guess first: the channel's
+    own referrer, a known provider mapping, a hint learned earlier for this host,
+    then the host root and its www variant. Edges commonly reject everything but
+    one of these, so both the liveness probe and the proxy walk the same ladder.
+    """
+    host = ""
+    try:
+        parsed = urllib.parse.urlparse(url)
+        host = (parsed.netloc or "").lower()
+    except Exception:
+        parsed = None
+
+    candidates = []
+    if referrer:
+        candidates.append(referrer)
+    mapped = PROVIDER_DEFAULT_REFERRERS.get(next((h for h in PROVIDER_DEFAULT_REFERRERS if h in url.lower()), ""), "")
+    if mapped:
+        candidates.append(mapped)
+    with REFERRER_HINTS_LOCK:
+        hinted = REFERRER_HINTS.get(host)
+    if hinted:
+        candidates.append(hinted)
+    if host and parsed is not None:
+        root = f"{parsed.scheme}://{host}/"
+        candidates.append(root)
+        if not host.startswith("www."):
+            candidates.append(f"{parsed.scheme}://www.{host}/")
+        page = url.split("?")[0].rsplit("/", 1)[0] + "/"
+        candidates.append(page)
+
+    seen = set()
+    ladder = []
+    for cand in candidates:
+        if cand and cand not in seen:
+            seen.add(cand)
+            ladder.append(cand)
+    ladder.append("")
+    return ladder
+
+
+def _remember_referer(url: str, referrer: str) -> None:
+    if not referrer:
+        return
+    try:
+        host = (urllib.parse.urlparse(url).netloc or "").lower()
+    except Exception:
+        return
+    if host:
+        with REFERRER_HINTS_LOCK:
+            REFERRER_HINTS[host] = referrer
+
+
 def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
     """
     Deep stream liveness probe matching real IPTV player (VLC/TiviMate) behavior:
@@ -3850,12 +4010,39 @@ def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
         or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/3.0",
         "Accept": "*/*",
     }
-    if channel_row.get("referrer"):
-        headers["Referer"] = channel_row["referrer"]
+
+    # Hotlink-protected edges answer 403 unless the referrer is exactly right, so
+    # walk the ladder instead of declaring the channel offline on first refusal.
+    resp = None
+    last_code = 0
+    for referer in _referer_candidates(url, channel_row.get("referrer") or ""):
+        if referer:
+            headers["Referer"] = referer
+        else:
+            headers.pop("Referer", None)
+        try:
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            resp = urllib.request.urlopen(req, timeout=timeout)
+            last_code = resp.getcode()
+        except urllib.error.HTTPError as exc:
+            last_code = exc.code
+            elapsed = int((time.time() - start) * 1000)
+            if exc.code not in (401, 403):
+                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": f"HTTP {exc.code}"}
+            continue
+        except Exception as exc:
+            elapsed = int((time.time() - start) * 1000)
+            return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": str(exc)[:120]}
+        if referer:
+            _remember_referer(url, referer)
+        break
+
+    if resp is None:
+        elapsed = int((time.time() - start) * 1000)
+        return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": f"HTTP {last_code or 'refused'}"}
 
     try:
-        req = urllib.request.Request(url, headers=headers, method="GET")
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with resp:
             final_url = resp.geturl() or url
             content_type = resp.headers.get("Content-Type", "")
             chunk = resp.read(16384)
@@ -4503,14 +4690,38 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             if not effective_referrer and "cdntvtech" in target_url.lower():
                 pu = urllib.parse.urlparse(target_url)
                 effective_referrer = f"{pu.scheme}://{pu.netloc}/"
-            if effective_referrer:
-                req_headers["Referer"] = effective_referrer
             range_hdr = self.headers.get("Range")
             if range_hdr:
                 req_headers["Range"] = range_hdr
 
-            req = urllib.request.Request(target_url, headers=req_headers)
-            with urllib.request.urlopen(req, timeout=5.0) as resp:
+            # Some outside edges refuse every referrer but one; on a 401/403 retry
+            # the ladder and remember the referrer that worked for this host.
+            resp = None
+            upstream_error = ""
+            for candidate in _referer_candidates(target_url, effective_referrer or ""):
+                if candidate:
+                    req_headers["Referer"] = candidate
+                else:
+                    req_headers.pop("Referer", None)
+                try:
+                    resp = urllib.request.urlopen(
+                        urllib.request.Request(target_url, headers=req_headers), timeout=5.0
+                    )
+                except urllib.error.HTTPError as exc:
+                    upstream_error = f"HTTP {exc.code}"
+                    if exc.code in (401, 403):
+                        continue
+                    break
+                if candidate:
+                    effective_referrer = candidate
+                    _remember_referer(target_url, candidate)
+                break
+
+            if resp is None:
+                self.send_json({"error": f"Remote stream server returned {upstream_error}", "status": 403}, status=403)
+                return
+
+            with resp:
                 status_code = resp.getcode()
                 content_type = resp.headers.get("Content-Type", "")
                 first_chunk = resp.read(65536)
@@ -4629,6 +4840,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 "status": "healthy",
                 "service": "streamforge-iptv-studio",
                 "scheduler_enabled": sched_ok,
+                "storage": "durable" if state_sync_enabled() else "ephemeral",
                 "timestamp": int(time.time()),
             })
             return
@@ -6247,7 +6459,9 @@ def run_server(port: int = 8765):
         or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
     )
 
+    restore_state_from_github()
     init_db()
+    start_state_sync()
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
 
