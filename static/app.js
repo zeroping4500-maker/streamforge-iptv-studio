@@ -55,9 +55,13 @@ function showToast(msg) {
 
 async function api(path, options = {}) {
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'zemy-admin' },
     ...options,
   });
+  if (res.status === 401) {
+    window.location.href = '/admin';
+    throw new Error('Signed out');
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data.error || `Request failed (${res.status})`);

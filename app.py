@@ -48,6 +48,39 @@ DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
 
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
+
+# ---------------------------------------------------------------------------
+# Global auth gate
+#
+# Default-deny: every route needs an admin session except the sign-in page,
+# the health probes and the static assets the sign-in page itself loads.
+# Anything under /api/admin keeps its own stricter checks on top.
+# NEON_AUTH_ENABLED=0 is the documented escape hatch that turns auth off.
+# ---------------------------------------------------------------------------
+
+AUTH_GATE_PUBLIC_PATHS = {"/admin", "/admin/", "/api/health", "/ping", "/health"}
+# Code-only files needed to render the pages; static/ holds no data.
+AUTH_GATE_STATIC_RE = re.compile(r"\.(?:css|js|mjs|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|map|html|txt)$", re.I)
+CSP_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' https: data: blob:; "
+    "media-src 'self' https: blob:; "
+    "connect-src 'self' https:; "
+    "frame-src https:; "
+    "worker-src 'self' blob:; "
+    "font-src 'self' data:; "
+    "object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+)
+
+
+def auth_gate_enabled() -> bool:
+    if os.environ.get("NEON_AUTH_ENABLED", "").strip() == "0":
+        return False
+    return bool(auth.enabled())
+
+
 # Provider pages allowed inside the /watch shell (their players refuse foreign frames)
 PLAYER_EMBED_HOSTS = ("dembed.st", "thedaddy.li", "pflix.net", "dlhd.dad")
 # CDN edges that answer 403 unless the request carries the provider site's Referer
@@ -4397,6 +4430,61 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass
 
+    def end_headers(self):
+        # Global hardening headers, skipped when the handler already set one.
+        try:
+            sent = set()
+            ctype = ""
+            for line in list(getattr(self, "_headers_buffer", None) or []):
+                low = bytes(line).decode("latin-1", "replace")
+                if ":" in low:
+                    key, value = low.split(":", 1)
+                    key = key.strip().lower()
+                    sent.add(key)
+                    if key == "content-type":
+                        ctype = value.strip().lower()
+            extra = []
+            if "x-content-type-options" not in sent:
+                extra.append(("X-Content-Type-Options", "nosniff"))
+            if "referrer-policy" not in sent:
+                extra.append(("Referrer-Policy", "same-origin"))
+            if "x-frame-options" not in sent:
+                extra.append(("X-Frame-Options", "SAMEORIGIN"))
+            if ctype.startswith("text/html") and "content-security-policy" not in sent:
+                extra.append(("Content-Security-Policy", CSP_POLICY))
+            for key, value in extra:
+                self.send_header(key, value)
+        except Exception:
+            pass
+        super().end_headers()
+
+    def _auth_gate(self, path, method):
+        """Default-deny check. Returns True when the request may proceed."""
+        if not auth_gate_enabled():
+            return True
+        if method == "POST":
+            ip = admin._client_ip(self)
+            if not admin._rate_ok(ip, "api-write", 240):
+                self.send_json({"error": "Too many requests, slow down", "code": "rate_limited"}, 429)
+                return False
+            # Cookie-authenticated writes need same-origin + the fetch marker.
+            if not admin._same_origin(self) or (self.headers.get("X-Requested-With") or "") != "zemy-admin":
+                self.send_json({"error": "Cross-origin or unmarked request refused", "code": "cross_origin"}, 403)
+                return False
+        if admin.current_admin(self):
+            return True
+        if path in AUTH_GATE_PUBLIC_PATHS or AUTH_GATE_STATIC_RE.search(path):
+            return True
+        if method in ("GET", "HEAD") and not path.startswith(("/api/", "/m3u/")):
+            # A page (e.g. the viewer or /watch): bounce to the sign-in panel.
+            self.send_response(302)
+            self.send_header("Location", "/admin")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return False
+        self.send_json({"error": "Authentication required", "code": "not_authenticated"}, 401)
+        return False
+
     def handle(self):
         try:
             super().handle()
@@ -4441,6 +4529,8 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
         parsed = urllib.parse.urlparse(self.path)
+        if not self._auth_gate(parsed.path, "HEAD"):
+            return
         if parsed.path == "/api/proxy-stream":
             self.send_response(200)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -4632,6 +4722,9 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         qs = urllib.parse.parse_qs(parsed.query)
 
         if admin.handle(self, "GET", path, parsed.query):
+            return
+
+        if not self._auth_gate(path, "GET"):
             return
 
         if path in ("/admin", "/admin/"):
@@ -5076,6 +5169,8 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
         path = parsed.path
         if path.startswith("/api/admin"):
             admin.handle(self, "POST", path, parsed.query)
+            return
+        if not self._auth_gate(path, "POST"):
             return
         body = self.read_json()
 
