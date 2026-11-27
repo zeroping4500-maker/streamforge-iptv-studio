@@ -28,7 +28,7 @@ RUN if [ "$WITH_PLAYWRIGHT" = "1" ]; then \
         playwright install --with-deps chromium && \
         chmod -R 777 /ms-playwright; \
     else \
-        pip install --no-cache-dir yt-dlp; \
+        pip install --no-cache-dir yt-dlp psycopg2-binary PyJWT cryptography; \
     fi
 
 COPY . .

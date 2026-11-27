@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
 ZEMYIPTV IPTV Studio - Custom M3U / M3U8 Playlist Creator & Manager (v3)
+Data lives in Neon Postgres (see db.py); admin access is backed by Neon Auth.
+
 Fixes & Features:
-- WAL-mode SQLite + zero DB locks during network I/O (fixes all 500 database locked errors)
+- Neon Postgres storage: playlists survive deploys, no local database file
 - Full JSON error handling on all GET/POST endpoints
 - Fast indexed 13,000+ stream catalog (IPTV-Org streams.json + channels.json + Curated HD streams)
 - Bulk Find Source by Channel Name List (up to 100 channels at once) for BOTH Main Panel & Non-Working Channels Center
@@ -21,7 +23,6 @@ import json
 import os
 import re
 import socket
-import sqlite3
 import subprocess
 import threading
 import time
@@ -34,26 +35,19 @@ import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import db as store
+import admin
+import auth
 import source_importers as ext
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 STATIC_DIR = BASE_DIR / "static"
-DB_PATH = DATA_DIR / "iptv_studio.db"
 
 DATA_DIR.mkdir(exist_ok=True)
 STATIC_DIR.mkdir(exist_ok=True)
 
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
-# Render's free plan has no disk: the SQLite file and caches are wiped on every
-# deploy/restart, so imported playlists vanish. When a GitHub token is present we
-# mirror the DB to a side branch (not main, which would redeploy) and restore it
-# at boot. Without the token the app runs exactly as before, on ephemeral storage.
-STATE_SYNC_REPO = os.environ.get("STATE_SYNC_REPO", "zeroping4500-maker/streamforge-iptv-studio")
-STATE_SYNC_BRANCH = os.environ.get("STATE_SYNC_BRANCH", "zemyiptv-state")
-STATE_SYNC_PATH = "state/iptv_studio.db"
-STATE_SYNC_TOKEN = os.environ.get("STATE_SYNC_TOKEN") or os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
-STATE_SYNC_INTERVAL = int(os.environ.get("STATE_SYNC_INTERVAL", "90"))
 # Provider pages allowed inside the /watch shell (their players refuse foreign frames)
 PLAYER_EMBED_HOSTS = ("dembed.st", "thedaddy.li", "pflix.net", "dlhd.dad")
 # CDN edges that answer 403 unless the request carries the provider site's Referer
@@ -3361,196 +3355,16 @@ def build_m3u_export(playlist: dict, channels: list, smart_failover: bool = Fals
 
 
 # ---------------------------------------------------------------------------
-# Database Layer (WAL Mode + 30s Busy Timeout to Eliminate Locking)
+# Database Layer (Neon Postgres, see db.py)
 # ---------------------------------------------------------------------------
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("PRAGMA synchronous = NORMAL")
-    conn.execute("PRAGMA busy_timeout = 30000")
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
-
-
-def state_sync_enabled() -> bool:
-    return bool(STATE_SYNC_TOKEN and STATE_SYNC_REPO)
-
-
-def _github_api(method: str, path: str, payload=None):
-    url = f"https://api.github.com/repos/{STATE_SYNC_REPO}{path}"
-    data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(url, data=data, method=method, headers={
-        "Authorization": f"Bearer {STATE_SYNC_TOKEN}",
-        "Accept": "application/vnd.github+json",
-        "Content-Type": "application/json",
-        "User-Agent": "zemyiptv-state-sync",
-    })
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        body = resp.read()
-    return json.loads(body) if body else {}
-
-
-def restore_state_from_github() -> bool:
-    """Pull the last mirrored DB before the schema is created on an empty disk."""
-    if not state_sync_enabled() or DB_PATH.exists():
-        return False
-    try:
-        blob = _github_api("GET", f"/contents/{STATE_SYNC_PATH}?ref={STATE_SYNC_BRANCH}")
-        content = base64.b64decode(blob.get("content", ""))
-        if len(content) < 1024:
-            return False
-        tmp = DB_PATH.with_suffix(".restore")
-        tmp.write_bytes(content)
-        tmp.replace(DB_PATH)
-        print(f"[state] restored {len(content)} bytes from {STATE_SYNC_BRANCH}")
-        return True
-    except Exception as exc:
-        print(f"[state] restore skipped: {exc}")
-        return False
-
-
-def snapshot_state_to_github() -> bool:
-    """Mirror the SQLite file to a side branch; main is never touched, so this
-    cannot trigger a redeploy loop."""
-    if not state_sync_enabled() or not DB_PATH.exists():
-        return False
-    try:
-        with sqlite3.connect(DB_PATH, timeout=15.0) as conn:
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        content = base64.b64encode(DB_PATH.read_bytes()).decode()
-        try:
-            existing = _github_api("GET", f"/contents/{STATE_SYNC_PATH}?ref={STATE_SYNC_BRANCH}")
-            sha = existing.get("sha")
-        except Exception:
-            try:
-                main_ref = _github_api("GET", "/git/ref/heads/main")
-                _github_api("POST", "/git/refs", {
-                    "ref": f"refs/heads/{STATE_SYNC_BRANCH}",
-                    "sha": main_ref["object"]["sha"],
-                })
-            except Exception:
-                pass
-            sha = None
-        payload = {
-            "message": f"state snapshot {int(time.time())}",
-            "content": content,
-            "branch": STATE_SYNC_BRANCH,
-        }
-        if sha:
-            payload["sha"] = sha
-        _github_api("PUT", f"/contents/{STATE_SYNC_PATH}", payload)
-        return True
-    except Exception as exc:
-        print(f"[state] snapshot failed: {exc}")
-        return False
-
-
-def start_state_sync() -> None:
-    """Snapshot whenever the DB changed, so an import survives the next deploy."""
-    if not state_sync_enabled():
-        return
-
-    def loop():
-        last = 0.0
-        while True:
-            time.sleep(STATE_SYNC_INTERVAL)
-            try:
-                stamp = DB_PATH.stat().st_mtime if DB_PATH.exists() else 0.0
-                if stamp > last:
-                    if snapshot_state_to_github():
-                        last = stamp
-            except Exception:
-                pass
-
-    threading.Thread(target=loop, name="state-sync", daemon=True).start()
+get_db = store.get_db
 
 
 def init_db():
+    # Schema lives in db.py and is applied to Neon Postgres idempotently.
+    store.init_schema()
     with get_db() as conn:
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS playlists (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT DEFAULT '',
-                epg_url TEXT DEFAULT '',
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS channels (
-                id TEXT PRIMARY KEY,
-                playlist_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                url TEXT NOT NULL,
-                logo TEXT DEFAULT '',
-                category TEXT DEFAULT 'Uncategorized',
-                tvg_id TEXT DEFAULT '',
-                tvg_name TEXT DEFAULT '',
-                chno TEXT DEFAULT '',
-                user_agent TEXT DEFAULT '',
-                referrer TEXT DEFAULT '',
-                status TEXT DEFAULT 'unknown',
-                latency_ms INTEGER DEFAULT 0,
-                last_checked_at INTEGER DEFAULT 0,
-                fail_count INTEGER DEFAULT 0,
-                last_error TEXT DEFAULT '',
-                enabled INTEGER DEFAULT 1,
-                position INTEGER DEFAULT 0,
-                FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_channels_playlist ON channels(playlist_id, position);
-
-            CREATE TABLE IF NOT EXISTS health_logs (
-                id TEXT PRIMARY KEY,
-                ran_at INTEGER NOT NULL,
-                trigger_type TEXT NOT NULL,
-                total_checked INTEGER DEFAULT 0,
-                online_count INTEGER DEFAULT 0,
-                offline_count INTEGER DEFAULT 0
-            );
-
-            CREATE TABLE IF NOT EXISTS provider_sources (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                url TEXT NOT NULL,
-                badge TEXT NOT NULL,
-                provider_type TEXT NOT NULL DEFAULT 'fast_platform',
-                channel_count INTEGER DEFAULT 0,
-                last_synced_at INTEGER DEFAULT 0,
-                enabled INTEGER DEFAULT 1,
-                is_system INTEGER DEFAULT 0,
-                position INTEGER DEFAULT 0
-            );
-
-            CREATE TABLE IF NOT EXISTS channel_sources (
-                id TEXT PRIMARY KEY,
-                channel_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                url TEXT NOT NULL,
-                source_name TEXT DEFAULT 'Backup Stream',
-                quality TEXT DEFAULT 'HD',
-                priority INTEGER DEFAULT 1,
-                status TEXT DEFAULT 'unknown',
-                latency_ms INTEGER DEFAULT 0,
-                last_checked_at INTEGER DEFAULT 0,
-                confidence INTEGER DEFAULT 90,
-                last_error TEXT DEFAULT '',
-                FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_channel_sources_channel ON channel_sources(channel_id, priority);
-            """
-        )
-
-        try:
-            conn.execute("ALTER TABLE health_logs ADD COLUMN failovers_count INTEGER DEFAULT 0")
-        except Exception:
-            pass
-
         default_providers = [
             (
                 "prov_pluto",
@@ -3720,16 +3534,6 @@ def init_db():
             """,
             default_providers,
         )
-
-        existing_cols = {
-            row["name"] for row in conn.execute("PRAGMA table_info(channels)").fetchall()
-        }
-        if "last_checked_at" not in existing_cols:
-            conn.execute("ALTER TABLE channels ADD COLUMN last_checked_at INTEGER DEFAULT 0")
-        if "fail_count" not in existing_cols:
-            conn.execute("ALTER TABLE channels ADD COLUMN fail_count INTEGER DEFAULT 0")
-        if "last_error" not in existing_cols:
-            conn.execute("ALTER TABLE channels ADD COLUMN last_error TEXT DEFAULT ''")
 
         try:
             total_f = conn.execute("SELECT COALESCE(SUM(failovers_count), 0) FROM health_logs").fetchone()[0]
@@ -4827,6 +4631,27 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         qs = urllib.parse.parse_qs(parsed.query)
 
+        if admin.handle(self, "GET", path, parsed.query):
+            return
+
+        if path in ("/admin", "/admin/"):
+            page = STATIC_DIR / "admin.html"
+            try:
+                raw = page.read_bytes()
+            except OSError:
+                self.send_json({"error": "Admin panel not found"}, 404)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Frame-Options", "DENY")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "same-origin")
+            self.end_headers()
+            self.wfile.write(raw)
+            return
+
         if path == "/api/progress":
             with PROGRESS_LOCK:
                 snap = {k: dict(v) for k, v in PROGRESS_STATE.items()}
@@ -4836,11 +4661,13 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         if path in ("/api/health", "/ping", "/health"):
             with SCHEDULER_LOCK:
                 sched_ok = SCHEDULER_STATE.get("enabled", True)
+            health_info = store.health()
             self.send_json({
-                "status": "healthy",
-                "service": "streamforge-iptv-studio",
+                "status": "healthy" if health_info.get("storage") == "postgres" else "degraded",
+                "service": "zemyiptv",
                 "scheduler_enabled": sched_ok,
-                "storage": "durable" if state_sync_enabled() else "ephemeral",
+                "storage": health_info.get("storage"),
+                "database": health_info.get("database"),
                 "timestamp": int(time.time()),
             })
             return
@@ -5247,6 +5074,9 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
     def _handle_post(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        if path.startswith("/api/admin"):
+            admin.handle(self, "POST", path, parsed.query)
+            return
         body = self.read_json()
 
         # Bulk Search Stream Sources by Channel Names List (up to 100 channels at once!)
@@ -5729,9 +5559,8 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
 
         # Offload & Sync with GitHub Actions
         if path == "/api/github/sync-db":
-            sync_db_from_github_raw()
             init_db()
-            self.send_json({"ok": True, "message": "Synced latest database from GitHub Actions"})
+            self.send_json({"ok": True, "message": "Schema refreshed; data lives in Neon Postgres"})
             return
 
         if path == "/api/github/trigger-renew":
@@ -6431,24 +6260,6 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
         self.send_json({"error": "Unknown API endpoint"}, 404)
 
 
-def sync_db_from_github_raw():
-    """On lightweight cloud panels (Render), sync latest DB updated by GitHub Actions."""
-    repo_db_url = os.environ.get(
-        "GITHUB_DB_RAW_URL",
-        "https://raw.githubusercontent.com/zeroping4500-maker/streamforge-iptv-studio/main/data/iptv_studio.db",
-    )
-    try:
-        req = urllib.request.Request(repo_db_url, headers={"User-Agent": "ZEMYIPTVSync/1.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = resp.read()
-            if data and data.startswith(b"SQLite format 3"):
-                tmp_path = DATA_DIR / "iptv_studio.db.tmp"
-                tmp_path.write_bytes(data)
-                os.replace(tmp_path, DB_PATH)
-                print(f"[Cloud Panel] Synced latest database ({len(data)} bytes) from GitHub Actions.")
-    except Exception as e:
-        print(f"[Cloud Panel] GitHub DB sync skipped: {e}")
-
 
 def run_server(port: int = 8765):
     global SERVER_PORT
@@ -6459,9 +6270,7 @@ def run_server(port: int = 8765):
         or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
     )
 
-    restore_state_from_github()
     init_db()
-    start_state_sync()
     threading.Thread(target=ensure_logo_catalog_loaded, daemon=True).start()
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
 

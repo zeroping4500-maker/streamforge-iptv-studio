@@ -1,5 +1,9 @@
-# ZEMYIPTV IPTV Studio Cloud Dependencies
-# The app itself runs on the Python 3 standard library (http.server + sqlite3).
-# These are lazy-imported only when the feature that needs them runs:
+# ZEMYIPTV IPTV Studio — runtime dependencies
+# Core storage and admin authentication (needed on every host):
+psycopg2-binary>=2.9.9
+PyJWT>=2.8.0
+cryptography>=42.0.0
+
+# Optional, lazy-imported only when the feature that needs them runs:
 yt-dlp>=2025.1.0
 playwright>=1.49.0

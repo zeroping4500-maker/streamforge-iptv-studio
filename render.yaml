@@ -12,3 +12,12 @@ services:
         value: 10000
       - key: PYTHONUNBUFFERED
         value: "1"
+      # Set these in the Render dashboard (sync: false keeps secrets out of git).
+      - key: DATABASE_URL
+        sync: false
+      - key: NEON_AUTH_BASE_URL
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+      - key: NEON_AUTH_APP_NAME
+        sync: false

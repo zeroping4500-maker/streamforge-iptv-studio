@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ZEMYIPTV · Admin</title>
+  <link rel="stylesheet" href="/admin.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305070d'/%3E%3Cpath d='M9 22V10l14 12V10' stroke='%233b82f6' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Sign-in -->
+  <section id="authView" class="auth" hidden>
+    <div class="auth-card">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="26" height="26" fill="none"><path d="M8 23V9l16 14V9" stroke="url(#g)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g" x1="8" y1="9" x2="24" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#60a5fa"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs></svg>
+        </span>
+        <span class="brand-word">ZEMYIPTV<em>Admin</em></span>
+      </div>
+
+      <h1>Operator sign-in</h1>
+      <p class="lede">Access is limited to ZEMYIPTV accounts that hold admin permission. Sign-in is handled by Neon Auth — this server never sees your password.</p>
+
+      <div class="tabs-switch" role="tablist" aria-label="Sign-in method">
+        <button class="switch-btn is-active" role="tab" aria-selected="true" data-method="otp" id="tabOtp">Email code</button>
+        <button class="switch-btn" role="tab" aria-selected="false" data-method="google" id="tabGoogle">Google</button>
+      </div>
+
+      <form id="otpForm" class="auth-form" novalidate>
+        <label class="field">
+          <span>Work email</span>
+          <input id="emailInput" type="email" name="email" autocomplete="email" inputmode="email" placeholder="you@studio.tv" required>
+        </label>
+        <div id="codeRow" class="code-row" hidden>
+          <label class="field">
+            <span>6-digit code</span>
+            <input id="codeInput" type="text" name="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" required>
+          </label>
+        </div>
+        <button id="sendBtn" class="btn primary" type="submit">Send sign-in code</button>
+        <button id="verifyBtn" class="btn primary" type="button" hidden>Verify and enter</button>
+        <p id="authNote" class="note" role="status"></p>
+      </form>
+
+      <div id="googlePanel" class="auth-form" hidden>
+        <p class="note">Continue with the Google account linked to your Neon Auth profile.</p>
+        <button id="googleBtn" class="btn primary" type="button">Continue with Google</button>
+      </div>
+
+      <p class="fineprint">Authentication: Neon Auth · <span id="authHost">…</span></p>
+    </div>
+  </section>
+
+  <!-- Panel -->
+  <div id="appView" class="app" hidden>
+    <header class="topbar">
+      <div class="brand small">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="20" height="20" fill="none"><path d="M8 23V9l16 14V9" stroke="url(#g2)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g2" x1="8" y1="9" x2="24" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#60a5fa"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs></svg>
+        </span>
+        <span class="brand-word">ZEMYIPTV<em>Admin</em></span>
+      </div>
+      <div class="topbar-right">
+        <span id="whoami" class="whoami"></span>
+        <button id="signOut" class="btn ghost small">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab is-active" data-view="overview">Overview</button>
+      <button class="tab" data-view="channels">Channels</button>
+      <button class="tab" data-view="playlists">Playlists</button>
+      <button class="tab" data-view="providers">Providers</button>
+      <button class="tab" data-view="admins">Admins</button>
+      <button class="tab" data-view="audit">Audit</button>
+    </nav>
+
+    <main id="main" class="main">
+      <div id="viewError" class="banner error" role="alert" hidden></div>
+
+      <!-- Overview -->
+      <section id="view-overview" class="view">
+        <div class="stat-band" id="stats" aria-live="polite"></div>
+        <div class="split">
+          <div class="panel">
+            <h2>Stream health</h2>
+            <div id="healthBlock" class="health"></div>
+          </div>
+          <div class="panel">
+            <h2>Storage</h2>
+            <div id="storageBlock" class="kv"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Newest channels</h2>
+          <ul id="recentChannels" class="plain-list"></ul>
+        </div>
+      </section>
+
+      <!-- Channels -->
+      <section id="view-channels" class="view" hidden>
+        <div class="toolbar">
+          <label class="search">
+            <span class="sr">Search channels</span>
+            <input id="channelSearch" type="search" placeholder="Search by name or category" autocomplete="off">
+          </label>
+          <select id="channelStatus" aria-label="Filter by state">
+            <option value="">All states</option>
+            <option value="online">Online</option>
+            <option value="offline">Offline</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+        <div class="panel flush">
+          <div id="channelSummary" class="panel-head"></div>
+          <div id="channelList" class="rows"></div>
+          <button id="loadMore" class="btn ghost wide" hidden>Load more</button>
+        </div>
+      </section>
+
+      <!-- Playlists -->
+      <section id="view-playlists" class="view" hidden>
+        <div id="playlistList" class="cards"></div>
+      </section>
+
+      <!-- Providers -->
+      <section id="view-providers" class="view" hidden>
+        <div id="providerList" class="rows boxed"></div>
+      </section>
+
+      <!-- Admins -->
+      <section id="view-admins" class="view" hidden>
+        <div class="panel">
+          <h2>Who can operate this panel</h2>
+          <p class="muted">Admin permission is checked on every request against <code>admin_users</code> and the Neon Auth role. Revoking takes effect immediately.</p>
+          <div id="adminList" class="rows"></div>
+        </div>
+        <div class="panel">
+          <h2>Grant access</h2>
+          <form id="grantForm" class="grant-form" novalidate>
+            <input id="grantEmail" type="email" placeholder="email@studio.tv" autocomplete="off" required aria-label="Email to grant">
+            <select id="grantRole" aria-label="Role">
+              <option value="admin">Admin</option>
+              <option value="owner">Owner</option>
+            </select>
+            <button class="btn primary" type="submit">Grant</button>
+          </form>
+          <p id="grantNote" class="note" role="status"></p>
+          <div id="userList" class="rows"></div>
+        </div>
+      </section>
+
+      <!-- Audit -->
+      <section id="view-audit" class="view" hidden>
+        <div class="panel flush">
+          <div class="panel-head">Last 50 admin events</div>
+          <div id="auditList" class="rows"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/admin.js"></script>
+</body>
+</html>
