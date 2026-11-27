@@ -646,7 +646,7 @@ async function loadSourceProviders() {
                     </div>
                   </td>
                   <td><span class="ch-cat-pill">${typeLabel}</span></td>
-                  <td><div class="ch-url-preview" style="max-width:240px;" title="${escapeHtml(p.url)}">${escapeHtml(p.url)}</div></td>
+                  <td><div class="ch-url-preview ch-url-wrap" style="max-width:240px;" title="${escapeHtml(p.url)}">${escapeHtml(p.url)}</div></td>
                   <td><strong style="color:#38bdf8;">${(p.channel_count || 0).toLocaleString()} streams</strong></td>
                   <td><small style="color:#94a3b8;">${p.last_synced_at ? formatTimeAgo(p.last_synced_at) : 'Not synced yet'}</small></td>
                   <td>

@@ -841,7 +841,13 @@ body {
   font-size: 0.73rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+}
+
+.ch-url-preview.ch-url-wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
 }
 
 .channels-table tr:hover td {
