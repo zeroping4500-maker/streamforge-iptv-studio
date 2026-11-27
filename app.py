@@ -4473,7 +4473,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 return False
         if admin.current_admin(self):
             return True
-        if path in AUTH_GATE_PUBLIC_PATHS or AUTH_GATE_STATIC_RE.search(path):
+        if path in AUTH_GATE_PUBLIC_PATHS or path.startswith("/api/auth/") or AUTH_GATE_STATIC_RE.search(path):
             return True
         if method in ("GET", "HEAD") and not path.startswith(("/api/", "/m3u/")):
             # A page (e.g. the viewer or /watch): bounce to the sign-in panel.
@@ -4712,6 +4712,9 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         try:
+            parsed = urllib.parse.urlparse(self.path)
+            if not parsed.path.startswith("/api/admin") and not self._auth_gate(parsed.path, "GET"):
+                return
             self._handle_get()
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -4728,9 +4731,6 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         qs = urllib.parse.parse_qs(parsed.query)
 
         if admin.handle(self, "GET", path, parsed.query):
-            return
-
-        if not self._auth_gate(path, "GET"):
             return
 
         if path in ("/admin", "/admin/"):
@@ -5160,6 +5160,9 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
 
     def do_POST(self):
         try:
+            parsed = urllib.parse.urlparse(self.path)
+            if not parsed.path.startswith("/api/admin") and not self._auth_gate(parsed.path, "POST"):
+                return
             self._handle_post()
         except (BrokenPipeError, ConnectionResetError):
             pass
@@ -5175,8 +5178,6 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
         path = parsed.path
         if path.startswith("/api/admin"):
             admin.handle(self, "POST", path, parsed.query)
-            return
-        if not self._auth_gate(path, "POST"):
             return
         body = self.read_json()
 
