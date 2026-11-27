@@ -10,8 +10,10 @@ network budget per call is bounded so weak hosts are not starved.
 """
 
 import gzip
+import ipaddress
 import json
 import re
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -36,6 +38,33 @@ PFLIX_PROBE_URL = "https://pflix.net/live"
 MAX_BODY_BYTES = 6 * 1024 * 1024
 
 
+class UnsafeHostError(ValueError):
+    """The target host resolves to a private, loopback or link-local address."""
+
+
+def assert_public_http_url(url: str) -> str:
+    """SSRF guard: only http(s) URLs whose hosts resolve to public addresses.
+
+    Blocks loopback, RFC1918, link-local (incl. cloud metadata 169.254.169.254),
+    reserved and unspecified targets. Returns the URL on success.
+    """
+    parsed = urllib.parse.urlparse(url or "")
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise UnsafeHostError("Only absolute http(s) URLs are allowed")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror as exc:
+        raise UnsafeHostError(f"Cannot resolve host: {parsed.hostname}") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (
+            ip.is_private or ip.is_loopback or ip.is_link_local
+            or ip.is_reserved or ip.is_multicast or ip.is_unspecified
+        ):
+            raise UnsafeHostError(f"Host {parsed.hostname} resolves to a non-public address")
+    return url
+
+
 def _maybe_gunzip(raw: bytes, content_encoding: str = "") -> bytes:
     if (content_encoding or "").lower() == "gzip" or raw[:2] == b"\x1f\x8b":
         try:
@@ -49,6 +78,10 @@ def http_get(url: str, referrer: str = "", user_agent: str = BROWSER_UA,
              timeout: float = 15.0, max_bytes: int = MAX_BODY_BYTES,
              extra_headers: dict = None) -> dict:
     """Single bounded GET. Returns {ok, status, body, error} and never raises."""
+    try:
+        assert_public_http_url(url)
+    except UnsafeHostError as exc:
+        return {"ok": False, "status": 0, "body": b"", "content_type": "", "error": str(exc)}
     headers = {
         "User-Agent": user_agent or BROWSER_UA,
         "Accept": "*/*",

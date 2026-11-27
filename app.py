@@ -4549,6 +4549,12 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         (referer or agent checks) work for both playlists and their segments.
         """
         try:
+            # SSRF guard: the proxy must only leave the machine for public hosts.
+            try:
+                ext.assert_public_http_url(target_url)
+            except ext.UnsafeHostError as exc:
+                self.send_json({"error": str(exc), "status": 400}, status=400)
+                return
             # Check if target_url is a YouTube video URL, resolve fresh HLS manifest
             if "youtube.com" in target_url or "youtu.be" in target_url:
                 yt_vid_match = re.search(r"(?:v=|youtu\.be/|live/|embed/)([a-zA-Z0-9_-]{11})", target_url)
