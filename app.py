@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-StreamForge IPTV Studio - Custom M3U / M3U8 Playlist Creator & Manager (v3)
+ZEMYIPTV IPTV Studio - Custom M3U / M3U8 Playlist Creator & Manager (v3)
 Fixes & Features:
 - WAL-mode SQLite + zero DB locks during network I/O (fixes all 500 database locked errors)
 - Full JSON error handling on all GET/POST endpoints
@@ -45,7 +45,8 @@ IS_LIGHTWEIGHT_PANEL = bool(
     or os.environ.get("RENDER_EXTERNAL_URL")
     or os.environ.get("OFFLOAD_HEAVY_TASKS") == "1"
 )
-PANEL_MAX_WORKERS = 5 if IS_LIGHTWEIGHT_PANEL else 20
+# Cap thread workers by CPU count so small 1-2 vCPU cloud instances stay responsive
+PANEL_MAX_WORKERS = 5 if IS_LIGHTWEIGHT_PANEL else min(20, max(4, (os.cpu_count() or 2) * 4))
 
 # ---------------------------------------------------------------------------
 # Public Accessible URL & Tunnel State
@@ -743,7 +744,7 @@ def ensure_logo_catalog_loaded():
     try:
         req_logos = urllib.request.Request(
             "https://iptv-org.github.io/api/logos.json",
-            headers={"User-Agent": "StreamForge-IPTV-Studio/3.0"},
+            headers={"User-Agent": "ZEMYIPTV-IPTV-Studio/3.0"},
         )
         with urllib.request.urlopen(req_logos, timeout=6.0) as resp:
             logos_data = json.loads(resp.read().decode("utf-8", errors="ignore"))
@@ -891,7 +892,7 @@ def sync_all_provider_sources(force: bool = False) -> dict:
         try:
             req = urllib.request.Request(
                 p_url,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) StreamForge/4.0"},
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"},
             )
             with urllib.request.urlopen(req, timeout=14.0) as resp:
                 text = resp.read().decode("utf-8", errors="ignore")
@@ -1221,7 +1222,7 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
         # 3. Fetch up to 4 web playlists discovered in search results and extract matching channels
         for p_url in playlist_urls_to_fetch[:4]:
             try:
-                p_req = urllib.request.Request(p_url, headers={"User-Agent": "Mozilla/5.0 StreamForge/4.0"})
+                p_req = urllib.request.Request(p_url, headers={"User-Agent": "Mozilla/5.0 ZEMYIPTV/4.0"})
                 with urllib.request.urlopen(p_req, timeout=5.5) as p_resp:
                     p_body = p_resp.read(500000).decode("utf-8", errors="ignore")
                 parsed_chans = parse_provider_m3u_items(p_body, "GitHub Web Search", "🐙 GitHub Direct")
@@ -1304,7 +1305,7 @@ def search_github_iptv_repositories(query: str, limit: int = 8) -> list:
     encoded = urllib.parse.quote_plus(f"{clean_q} iptv m3u")
     url = f"https://api.github.com/search/repositories?q={encoded}&sort=stars&order=desc&per_page={limit}"
     headers = {
-        "User-Agent": "StreamForge-IPTV-Finder/4.0 (Windows NT 10.0)",
+        "User-Agent": "ZEMYIPTV-IPTV-Finder/4.0 (Windows NT 10.0)",
         "Accept": "application/vnd.github.v3+json",
     }
     repos_out = []
@@ -1373,7 +1374,7 @@ def preview_github_playlist_channels(download_url: str, filter_query: str = "") 
 
     req = urllib.request.Request(
         download_url,
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) StreamForge/4.0"}
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"}
     )
     with urllib.request.urlopen(req, timeout=12.0) as resp:
         content = resp.read(5 * 1024 * 1024).decode("utf-8", errors="ignore")
@@ -3508,7 +3509,7 @@ def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
     start = time.time()
     headers = {
         "User-Agent": channel_row.get("user_agent")
-        or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) StreamForge/3.0",
+        or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/3.0",
         "Accept": "*/*",
     }
     if channel_row.get("referrer"):
@@ -3865,7 +3866,7 @@ def keep_alive_loop():
                 target = ext_url.rstrip("/") + "/api/health"
                 req = urllib.request.Request(
                     target,
-                    headers={"User-Agent": "StreamForgeKeepAlive/1.0"}
+                    headers={"User-Agent": "ZEMYIPTVKeepAlive/1.0"}
                 )
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     pass
@@ -3962,7 +3963,7 @@ def fetch_xtream_codes_data(server_url: str, username: str, password: str) -> di
 
     q_auth = f"username={urllib.parse.quote(username)}&password={urllib.parse.quote(password)}"
     base_api = f"{clean_server}/player_api.php?{q_auth}"
-    headers = {"User-Agent": "Mozilla/5.0 (IPTVSmartersPro) StreamForge/3.0"}
+    headers = {"User-Agent": "Mozilla/5.0 (IPTVSmartersPro) ZEMYIPTV/3.0"}
 
     req_info = urllib.request.Request(base_api, headers=headers)
     with urllib.request.urlopen(req_info, timeout=10.0) as resp:
@@ -4140,7 +4141,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                         return
 
             req_headers = {
-                "User-Agent": "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) StreamForge/4.0",
+                "User-Agent": "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/4.0",
                 "Accept": "*/*",
             }
             if "cdntvtech" in target_url.lower():
@@ -4669,7 +4670,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             try:
                 req = urllib.request.Request(
                     url,
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) StreamForge/4.0"},
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"},
                 )
                 with urllib.request.urlopen(req, timeout=14.0) as resp:
                     text = resp.read().decode("utf-8", errors="ignore")
@@ -5063,7 +5064,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     headers={
                         "Authorization": f"Bearer {gh_token}",
                         "Accept": "application/vnd.github+json",
-                        "User-Agent": "StreamForgePanel/1.0",
+                        "User-Agent": "ZEMYIPTVPanel/1.0",
                         "Content-Type": "application/json",
                     },
                     method="POST",
@@ -5204,7 +5205,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 try:
                     req = urllib.request.Request(
                         source_url,
-                        headers={"User-Agent": "Mozilla/5.0 StreamForge-IPTV/3.0"},
+                        headers={"User-Agent": "Mozilla/5.0 ZEMYIPTV-IPTV/3.0"},
                     )
                     with urllib.request.urlopen(req, timeout=12.0) as resp:
                         raw_content = resp.read().decode("utf-8", errors="replace")
@@ -5751,7 +5752,7 @@ def sync_db_from_github_raw():
         "https://raw.githubusercontent.com/zeroping4500-maker/streamforge-iptv-studio/main/data/iptv_studio.db",
     )
     try:
-        req = urllib.request.Request(repo_db_url, headers={"User-Agent": "StreamForgeSync/1.0"})
+        req = urllib.request.Request(repo_db_url, headers={"User-Agent": "ZEMYIPTVSync/1.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = resp.read()
             if data and data.startswith(b"SQLite format 3"):
@@ -5791,7 +5792,7 @@ def run_server(port: int = 8765):
         threading.Thread(target=start_public_tunnel, args=("localhost.run",), daemon=True).start()
 
     server = ThreadingHTTPServer(("0.0.0.0", port), IPTVStudioHandler)
-    print(f"StreamForge IPTV Studio running at http://localhost:{port}")
+    print(f"ZEMYIPTV IPTV Studio running at http://localhost:{port}")
     server.serve_forever()
 
 

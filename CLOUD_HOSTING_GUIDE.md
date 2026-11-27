@@ -1,6 +1,6 @@
-# ☁️ 24/7 Always-On Cloud Hosting Guide for StreamForge IPTV Studio
+# ☁️ 24/7 Always-On Cloud Hosting Guide for ZEMYIPTV IPTV Studio
 
-This guide explains how to host **StreamForge IPTV Studio** online for **free** so you can access your IPTV studio panel and M3U playlists from your phone, TV, or browser **24/7, even when your PC is turned off**.
+This guide explains how to host **ZEMYIPTV IPTV Studio** online for **free** so you can access your IPTV studio panel and M3U playlists from your phone, TV, or browser **24/7, even when your PC is turned off**.
 
 ---
 
@@ -10,7 +10,7 @@ This guide explains how to host **StreamForge IPTV Studio** online for **free** 
 
 ### Step-by-Step (Under 3 Minutes):
 1. **Download Deployment Bundle:**
-   - Inside StreamForge IPTV Studio, click **☁️ 24/7 Cloud Host** in the top navbar and click **Download Cloud Bundle ZIP** (or use the files in this directory).
+   - Inside ZEMYIPTV IPTV Studio, click **☁️ 24/7 Cloud Host** in the top navbar and click **Download Cloud Bundle ZIP** (or use the files in this directory).
 2. **Push to GitHub:**
    - Create a free GitHub repository (e.g. `streamforge-iptv-studio`) at [github.com/new](https://github.com/new).
    - Upload the files or push the repository.

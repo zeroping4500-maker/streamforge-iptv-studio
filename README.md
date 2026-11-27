@@ -1,4 +1,4 @@
-# StreamForge — Custom IPTV M3U / M3U8 Playlist Studio
+# ZEMYIPTV — Custom IPTV M3U / M3U8 Playlist Studio
 
 A self-hosted IPTV playlist creator, editor, and live M3U hosting server built with **Python 3** (zero external dependencies required — uses built-in `http.server`, `sqlite3`, and `concurrent.futures`) and a smooth dark-gradient web UI.
 

@@ -1,5 +1,5 @@
 /**
- * StreamForge IPTV Studio — Frontend Application Logic (v3)
+ * ZEMYIPTV IPTV Studio — Frontend Application Logic (v3)
  * - Safe event delegation (zero inline quote-escaping bugs)
  * - Global try/catch error handling on all buttons
  * - Bulk Find Source by Channel Name List (up to 100 channels) on BOTH Main Panel & Non-Working Channels Center
@@ -34,7 +34,7 @@ function makeFallbackLogo(name = 'TV') {
   initials = initials.replace(/[^A-Z0-9]/g, '') || 'TV';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
     <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a855f7"/>
+      <stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#1d4ed8"/>
     </linearGradient></defs>
     <rect width="120" height="120" rx="26" fill="#0b1120"/>
     <rect x="4" y="4" width="112" height="112" rx="22" fill="url(#g)" fill-opacity="0.2" stroke="url(#g)" stroke-width="2.5"/>
@@ -1951,7 +1951,7 @@ async function refreshBrokenChannelsModal() {
       wrap.innerHTML = `
         <div class="empty-state" style="padding:40px; border:none;">
           <h3>🎉 Zero Non-Working Channels in This Playlist!</h3>
-          <p>All checked channels are currently responding. StreamForge automatically checks your channels ${sched.checks_per_day || 3} times a day, or you can use <strong>🔎 Find Source by Name List (≤100)</strong> above to add new channels.</p>
+          <p>All checked channels are currently responding. ZEMYIPTV automatically checks your channels ${sched.checks_per_day || 3} times a day, or you can use <strong>🔎 Find Source by Name List (≤100)</strong> above to add new channels.</p>
         </div>
       `;
       return;
@@ -2394,6 +2394,27 @@ async function removeChannelFromCategory(channelId) {
 // Live HLS (.m3u8) Stream Player
 // ---------------------------------------------------------------------------
 
+// hls.js is loaded on demand (first playback) instead of blocking page load.
+const HLS_CDN_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.13';
+let hlsLoaderPromise = null;
+
+function loadHls() {
+  if (window.Hls) return Promise.resolve();
+  if (!hlsLoaderPromise) {
+    hlsLoaderPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = HLS_CDN_URL;
+      script.onload = resolve;
+      script.onerror = () => {
+        hlsLoaderPromise = null;
+        reject(new Error('hls.js failed to load'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return hlsLoaderPromise;
+}
+
 function playStreamUrl(name, url, forceProxy = false) {
   const dock = document.getElementById('livePlayerDock');
   const video = document.getElementById('hlsVideo');
@@ -2500,7 +2521,9 @@ function playStreamUrl(name, url, forceProxy = false) {
   }
 
   const initialUrl = useProxy ? `/api/proxy-stream?url=${encodeURIComponent(url)}` : url;
-  initPlayer(initialUrl, useProxy);
+  loadHls()
+    .catch(() => {})
+    .then(() => initPlayer(initialUrl, useProxy));
 }
 
 function playChannel(channelId) {
@@ -2606,6 +2629,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadNetworkInfo();
     loadSchedulerStatus();
   }, 12000);
+
+  const heroCta = document.getElementById('btnHeroStart');
+  if (heroCta) {
+    heroCta.addEventListener('click', () => {
+      const target = document.getElementById('searchInput');
+      if (target) target.focus();
+    });
+  }
 
   // Search & Filter
   const searchInput = document.getElementById('searchInput');

@@ -1,5 +1,5 @@
 """
-StreamForge IPTV Studio - Cloud Stream Auto-Renew & M3U Export Engine
+ZEMYIPTV IPTV Studio - Cloud Stream Auto-Renew & M3U Export Engine
 Runs automatically in GitHub Actions on a 5-hour cron schedule (or on-demand).
 
 1. Extracts fresh live session tokens for Televizo / tvcdnpotok streams via Playwright.
@@ -89,7 +89,7 @@ def export_all_playlists_to_disk(output_dir: Path) -> list:
 
 def main():
     print("=" * 65)
-    print("🚀 StreamForge IPTV Studio - 24/7 Cloud Auto-Renew & Export")
+    print("🚀 ZEMYIPTV IPTV Studio - 24/7 Cloud Auto-Renew & Export")
     print("=" * 65)
     t0 = time.time()
 
