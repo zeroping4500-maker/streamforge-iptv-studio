@@ -2053,3 +2053,13 @@ body {
   }
 }
 
+/* Embedded provider player: anti-bot protected pages must load from the viewer's IP */
+.embed-player-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 12px;
+  background: #000;
+  display: block;
+}
+

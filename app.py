@@ -32,6 +32,8 @@ import zipfile
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import source_importers as ext
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 STATIC_DIR = BASE_DIR / "static"
@@ -890,7 +892,33 @@ def sync_all_provider_sources(force: bool = False) -> dict:
         p_name = prov["name"]
         p_badge = prov["badge"]
         p_id = prov["id"]
+        p_type = (prov.get("provider_type") or "m3u").strip().lower()
         try:
+            # Non-M3U catalogues come back in their own shape; map them onto the
+            # same item schema the M3U parser produces so search stays uniform.
+            adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels}.get(p_type)
+            if adapter is not None:
+                res = adapter()
+                if not res.get("ok"):
+                    return p_id, [], res.get("error") or "import failed"
+                parsed = []
+                for ch in res["channels"]:
+                    parsed.append({
+                        "name": ch["name"],
+                        "clean": clean_channel_name_for_match(ch["name"]),
+                        "tvg_id": "",
+                        "logo": ch.get("logo", ""),
+                        "category": ch.get("category", "Live TV"),
+                        "url": ch["url"],
+                        "quality": ch.get("quality", "HD"),
+                        "user_agent": ch.get("user_agent", ""),
+                        "referrer": ch.get("referrer", ""),
+                        "play_mode": ch.get("play_mode", ""),
+                        "source": p_badge,
+                        "provider": p_name,
+                    })
+                return p_id, parsed, None
+
             req = urllib.request.Request(
                 p_url,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"},
@@ -1123,6 +1151,7 @@ def match_stream_candidates_fast(query: str, tvg_id: str = "", limit: int = 8, t
             "quality": item.get("quality", "HD"),
             "user_agent": item.get("user_agent", ""),
             "referrer": item.get("referrer", ""),
+            "play_mode": item.get("play_mode", ""),
             "source": item.get("source", "Live Index"),
             "provider": item.get("provider", ""),
             "confidence": round(score * 100),
@@ -1209,6 +1238,8 @@ def _fetch_open_index_items() -> tuple:
             "category": "Live TV",
             "url": u,
             "quality": (entry.get("quality") or "HD").strip() or "HD",
+            "user_agent": (entry.get("user_agent") or "").strip(),
+            "referrer": (entry.get("referrer") or "").strip(),
         })
 
     fetched_at = time.time()
@@ -1328,8 +1359,8 @@ def search_open_index_m3u8_streams(query: str, tvg_id: str = "", limit: int = 8,
             "category": item.get("category", "Live TV"),
             "url": item["url"],
             "quality": item.get("quality", "HD"),
-            "user_agent": "",
-            "referrer": "",
+            "user_agent": item.get("user_agent", ""),
+            "referrer": item.get("referrer", ""),
             "source": "🌐 Open Index",
             "provider": "iptv-org Open Index",
             "confidence": round(score * 100),
@@ -1367,6 +1398,38 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
     results = search_open_index_m3u8_streams(query, limit=limit, target_country=target_country)
     seen_urls = {r["url"] for r in results}
     discovered_candidates = []
+
+    # GitHub code search (extension:m3u8) finds playlists that generic web search
+    # never links to. Token-authenticated when the Vault provides one: 30 req/min
+    # instead of 10, so a rate-limit stall cannot eat the request budget.
+    if len(results) < limit:
+        try:
+            gh = ext.github_code_search_m3u8(query, token=os.environ.get("GITHUB_TOKEN", ""), limit=3)
+            for gh_file in gh.get("files", [])[:2]:
+                p_res = ext.http_get(gh_file["raw_url"], timeout=6.0, max_bytes=2 * 1024 * 1024)
+                if not p_res["ok"]:
+                    continue
+                body = p_res["body"].decode("utf-8", errors="ignore")
+                for st in ext.streams_from_playlist_text(body, max_streams=300):
+                    c_clean = clean_channel_name_for_match(st["name"]) or ""
+                    if not c_clean:
+                        c_clean = clean_channel_name_for_match(gh_file["path"].rsplit("/", 1)[-1])
+                    if not (clean_q in c_clean or c_clean in clean_q or any(tok in c_clean for tok in clean_q.split() if len(tok) >= 3)):
+                        continue
+                    if st["url"] in seen_urls:
+                        continue
+                    seen_urls.add(st["url"])
+                    discovered_candidates.append({
+                        "name": st["name"] or query,
+                        "url": st["url"],
+                        "source": "🐙 GitHub Code",
+                        "provider": "GitHub Code Search",
+                        "quality": "HD",
+                        "user_agent": st.get("user_agent", ""),
+                        "referrer": st.get("referrer", ""),
+                    })
+        except Exception:
+            pass
 
     # Up to 2 scrape variants (with and without the country bias) for more coverage
     search_variants = [f"{query} m3u8 live stream iptv"]
@@ -1474,8 +1537,6 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
     web_added = 0
     max_total = max(limit, 12)
     for cand in discovered_candidates:
-        if cand["url"] in seen_urls:
-            continue
         score, meta = calculate_channel_match_score(
             query, cand["name"], cand.get("tvg_id", ""), cand.get("category", ""), target_country=target_country
         )
@@ -1491,8 +1552,8 @@ def search_live_web_for_channel_streams(query: str, limit: int = 6, check_live: 
             "category": "Web Stream",
             "url": cand["url"],
             "quality": cand.get("quality", "HD"),
-            "user_agent": "",
-            "referrer": "",
+            "user_agent": cand.get("user_agent", ""),
+            "referrer": cand.get("referrer", ""),
             "source": cand["source"],
             "provider": cand["provider"],
             "confidence": round(score * 100),
@@ -3517,6 +3578,26 @@ def init_db():
                 1,
                 13,
             ),
+            (
+                "prov_tvnow",
+                "tvnow.st Live",
+                "https://tvnow.st/api/channels",
+                "📺 tvnow.st",
+                "tvnow",
+                1,
+                1,
+                14,
+            ),
+            (
+                "prov_thedaddy_247",
+                "thedaddy.li 24/7",
+                "https://thedaddy.li/24-7-channels.php",
+                "🎬 thedaddy 24/7",
+                "thedaddy",
+                1,
+                1,
+                15,
+            ),
         ]
         conn.executemany(
             """
@@ -4369,12 +4450,14 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             return
         return super().do_HEAD()
 
-    def _proxy_stream_request(self, target_url: str):
+    def _proxy_stream_request(self, target_url: str, referrer: str = "", user_agent: str = ""):
         """
         Universal CORS-bypass stream proxy.
         Fetches remote .m3u8 playlists and rewrites variant manifests & chunks to route
         through this proxy, emitting full CORS headers so in-browser video players never fail.
         Supports automatic resolution of YouTube Live stream URLs.
+        Per-channel referrer / user-agent are forwarded so hotlink-protected CDNs
+        (referer or agent checks) work for both playlists and their segments.
         """
         try:
             # Check if target_url is a YouTube video URL, resolve fresh HLS manifest
@@ -4389,11 +4472,25 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                         self.send_json({"error": f"YouTube Live stream not active for video {vid_id}", "status": 404}, status=404)
                         return
 
+            # Player embed pages (thedaddy.li -> dembed.st) keep the HLS URL in a
+            # script tag. Resolve on play, not at import: 899 channels stay one request.
+            if "dembed.st" in target_url.lower() and "id=" in target_url:
+                embed_ref = ext.embed_referrer_for(target_url)
+                resolved_embed = ext.resolve_embed_stream(target_url, embed_ref)
+                if not resolved_embed:
+                    self.send_json({"error": "Could not resolve this player embed to a stream URL", "status": 502}, status=502)
+                    return
+                if not referrer:
+                    referrer = embed_ref
+                target_url = resolved_embed
+
             req_headers = {
-                "User-Agent": "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/4.0",
+                "User-Agent": user_agent or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/4.0",
                 "Accept": "*/*",
             }
-            if "cdntvtech" in target_url.lower():
+            if referrer:
+                req_headers["Referer"] = referrer
+            elif "cdntvtech" in target_url.lower():
                 pu = urllib.parse.urlparse(target_url)
                 req_headers["Referer"] = f"{pu.scheme}://{pu.netloc}/"
             range_hdr = self.headers.get("Range")
@@ -4417,6 +4514,13 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     body = first_chunk + rest
                     text = body.decode("utf-8", errors="replace")
                     lines = text.splitlines()
+                    # Child playlists and segments inherit the same referrer/agent:
+                    # hotlink checks are applied per segment on most CDNs.
+                    fwd_qs = ""
+                    if referrer:
+                        fwd_qs += f"&ref={urllib.parse.quote(referrer, safe='')}"
+                    if user_agent:
+                        fwd_qs += f"&ua={urllib.parse.quote(user_agent, safe='')}"
                     rewritten = []
                     for line in lines:
                         sline = line.strip()
@@ -4428,12 +4532,12 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                                 def _replace_uri(m):
                                     raw_u = m.group(1)
                                     abs_u = urllib.parse.urljoin(target_url, raw_u)
-                                    return f'URI="/api/proxy-stream?url={urllib.parse.quote(abs_u)}"'
+                                    return f'URI="/api/proxy-stream?url={urllib.parse.quote(abs_u)}{fwd_qs}"'
                                 sline = re.sub(r'URI="([^"]+)"', _replace_uri, sline)
                             rewritten.append(sline)
                         else:
                             abs_u = urllib.parse.urljoin(target_url, sline)
-                            rewritten.append(f"/api/proxy-stream?url={urllib.parse.quote(abs_u)}")
+                            rewritten.append(f"/api/proxy-stream?url={urllib.parse.quote(abs_u)}{fwd_qs}")
 
                     output_bytes = "\n".join(rewritten).encode("utf-8")
                     self.send_response(status_code)
@@ -4520,7 +4624,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
         m3u_match = re.match(r"^/m3u/([a-zA-Z0-9_-]+?)(?:\.(m3u8|m3u))?$", path)
         if m3u_match:
             pid = m3u_match.group(1)
-            ext = m3u_match.group(2) or "m3u"
+            m3u_ext = m3u_match.group(2) or "m3u"
             with get_db() as conn:
                 pl = conn.execute("SELECT * FROM playlists WHERE id = ?", (pid,)).fetchone()
                 if not pl:
@@ -4544,7 +4648,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", "*")
             if qs.get("download", ["0"])[0] == "1":
                 self.send_header(
-                    "Content-Disposition", f'attachment; filename="{safe_name}.{ext}"'
+                    "Content-Disposition", f'attachment; filename="{safe_name}.{m3u_ext}"'
                 )
             self.send_header("Content-Length", str(len(raw)))
             self.end_headers()
@@ -4762,6 +4866,24 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             self.send_json({"repositories": repos, "query": q})
             return
 
+        if path == "/api/sources/providers/probe":
+            probe_url = (qs.get("url", [""])[0] or "").strip()
+            kind = (qs.get("type", [""])[0] or "").strip().lower()
+            if kind == "pflix":
+                self.send_json(ext.probe_pflix())
+                return
+            if kind == "tvnow":
+                self.send_json(ext.probe_source(ext.TVNOW_API_URL))
+                return
+            if kind == "thedaddy":
+                self.send_json(ext.probe_source(ext.THEDADDY_LIST_URL))
+                return
+            if not probe_url.startswith(("http://", "https://")):
+                self.send_json({"error": "Provide url= (http/https) or type=tvnow|thedaddy|pflix"}, 400)
+                return
+            self.send_json(ext.probe_source(probe_url))
+            return
+
         if path == "/api/sources/providers":
             with get_db() as conn:
                 rows = conn.execute(
@@ -4788,7 +4910,7 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
             if not url or not url.startswith(("http://", "https://")):
                 self.send_json({"error": "Missing or invalid url parameter"}, 400)
                 return
-            self._proxy_stream_request(url)
+            self._proxy_stream_request(url, qs.get("ref", [""])[0], qs.get("ua", [""])[0])
             return
 
         if path == "/api/download-cloud-bundle":
@@ -4918,13 +5040,21 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 badge = f"⚡ {name[:12]}"
 
             try:
-                req = urllib.request.Request(
-                    url,
-                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"},
-                )
-                with urllib.request.urlopen(req, timeout=14.0) as resp:
-                    text = resp.read().decode("utf-8", errors="ignore")
-                parsed_items = parse_provider_m3u_items(text, name, badge)
+                adapter = {"tvnow": ext.fetch_tvnow_channels, "thedaddy": ext.fetch_thedaddy_channels}.get(prov_type)
+                if adapter is not None:
+                    res = adapter()
+                    if not res.get("ok"):
+                        self.send_json({"error": f"Source import failed: {res.get('error') or 'unknown error'}"}, 400)
+                        return
+                    parsed_items = res["channels"]
+                else:
+                    req = urllib.request.Request(
+                        url,
+                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZEMYIPTV/4.0"},
+                    )
+                    with urllib.request.urlopen(req, timeout=14.0) as resp:
+                        text = resp.read().decode("utf-8", errors="ignore")
+                    parsed_items = parse_provider_m3u_items(text, name, badge)
             except Exception as e:
                 self.send_json({"error": f"Failed to fetch M3U from provider URL: {e}"}, 400)
                 return

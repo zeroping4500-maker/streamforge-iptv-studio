@@ -916,7 +916,7 @@ function renderBulkSourceResultsTable(results, containerId) {
       const idx = parseInt(btn.getAttribute('data-bulk-play-idx'), 10);
       const item = results[idx];
       if (item && item.url) {
-        playStreamUrl(item.name || item.requested_name, item.url);
+        playStreamUrl(item.name || item.requested_name, item.url, false, item.referrer || '', item.user_agent || '', item.play_mode || '');
       }
     });
   });
@@ -999,7 +999,7 @@ async function runDedicatedSourceSearch() {
     container.querySelectorAll('[data-play-idx]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const s = sources[parseInt(btn.getAttribute('data-play-idx'), 10)];
-        playStreamUrl(s.name, s.url);
+        playStreamUrl(s.name, s.url, false, s.referrer || '', s.user_agent || '', s.play_mode || '');
       });
     });
 
@@ -1293,7 +1293,7 @@ function renderGithubSearchResults(repos, webStreams, ytStreams = [], query = ''
     wrap.querySelectorAll('[data-yt-play-idx]').forEach(btn => {
       btn.addEventListener('click', () => {
         const s = ytStreams[parseInt(btn.getAttribute('data-yt-play-idx'), 10)];
-        playStreamUrl(s.name, s.url);
+        playStreamUrl(s.name, s.url, false, s.referrer || '', s.user_agent || '', s.play_mode || '');
       });
     });
     wrap.querySelectorAll('[data-yt-add-idx]').forEach(btn => {
@@ -1331,7 +1331,7 @@ function renderGithubSearchResults(repos, webStreams, ytStreams = [], query = ''
     wrap.querySelectorAll('[data-web-play-idx]').forEach(btn => {
       btn.addEventListener('click', () => {
         const s = webStreams[parseInt(btn.getAttribute('data-web-play-idx'), 10)];
-        playStreamUrl(s.name, s.url);
+        playStreamUrl(s.name, s.url, false, s.referrer || '', s.user_agent || '', s.play_mode || '');
       });
     });
     wrap.querySelectorAll('[data-web-add-idx]').forEach(btn => {
@@ -1388,6 +1388,28 @@ function renderGithubSearchResults(repos, webStreams, ytStreams = [], query = ''
       addDiscoveredGithubAsProvider(name, url);
     });
   });
+}
+
+async function probeSourceKind(kind, btn) {
+  const out = document.getElementById('probeSourceResult');
+  if (btn) btn.disabled = true;
+  try {
+    const data = await api(`/api/sources/providers/probe?type=${encodeURIComponent(kind)}`);
+    const ok = data.status === 'ok';
+    if (out) {
+      out.classList.remove('hidden');
+      out.style.color = ok ? '#6ee7b7' : '#f8b4b4';
+      out.textContent = `${ok ? '✅' : '⚠️'} ${kind}: ${data.status} (HTTP ${data.http_status || '—'}) — ${data.detail || ''}`;
+    }
+  } catch (err) {
+    if (out) {
+      out.classList.remove('hidden');
+      out.style.color = '#f8b4b4';
+      out.textContent = `❌ ${kind}: ${err.message}`;
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function addDiscoveredGithubAsProvider(name, url) {
@@ -1508,7 +1530,7 @@ function renderGithubPreviewChannelsTable(channels) {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.getAttribute('data-play-prev-idx'), 10);
       const ch = channels[idx];
-      if (ch) playStreamUrl(ch.name, ch.url);
+      if (ch) playStreamUrl(ch.name, ch.url, false, ch.referrer || '', ch.user_agent || '', ch.play_mode || '');
     });
   });
 
@@ -2415,7 +2437,7 @@ function loadHls() {
   return hlsLoaderPromise;
 }
 
-function playStreamUrl(name, url, forceProxy = false) {
+function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent = '', playMode = '') {
   const dock = document.getElementById('livePlayerDock');
   const video = document.getElementById('hlsVideo');
   const overlay = document.getElementById('playerStatusOverlay');
@@ -2427,17 +2449,55 @@ function playStreamUrl(name, url, forceProxy = false) {
   document.getElementById('playerChannelName').textContent = name || 'Stream Preview';
   document.getElementById('playerStreamUrl').value = url;
 
+  const staleFrame = document.getElementById('embedPlayerFrame');
+  if (staleFrame) staleFrame.remove();
+  video.style.display = '';
+
   if (state.hlsInstance) {
     state.hlsInstance.destroy();
     state.hlsInstance = null;
   }
 
-  const useProxy = Boolean(forceProxy || state.forceStreamProxy);
+  // Streams that need a Referer/User-Agent cannot send one from a <video> tag,
+  // so they always start through the proxy, which forwards those headers.
+  const needsHeaders = Boolean(referrer || userAgent);
+  const useProxy = Boolean(forceProxy || needsHeaders || state.forceStreamProxy);
+  const proxyUrlFor = (target) => {
+    let out = `/api/proxy-stream?url=${encodeURIComponent(target)}`;
+    if (referrer) out += `&ref=${encodeURIComponent(referrer)}`;
+    if (userAgent) out += `&ua=${encodeURIComponent(userAgent)}`;
+    return out;
+  };
   if (proxyToggleState) {
     proxyToggleState.textContent = useProxy ? 'ON (Proxy)' : 'Auto';
   }
   if (proxyBadge) {
     proxyBadge.classList.toggle('hidden', !useProxy);
+  }
+
+  // Provider pages that run their own player (dembed.st, thedaddy.li watch pages,
+  // pflix.net) refuse this server's datacenter IP and set a signed/Cloudflare
+  // challenge no plain fetch can satisfy. Embedding the page lets the viewer's own
+  // browser load it from their IP, exactly like the provider's site does.
+  const EMBED_HOSTS = /(^|\.)(dembed\.st|pflix\.net|thedaddy\.li|dlhd\.dad)$/i;
+  let embedMode = playMode === 'iframe';
+  try {
+    embedMode = embedMode || EMBED_HOSTS.test(new URL(url, window.location.href).hostname);
+  } catch (_) {}
+
+  if (embedMode) {
+    const frame = document.createElement('iframe');
+    frame.id = 'embedPlayerFrame';
+    frame.className = 'embed-player-frame';
+    frame.src = url;
+    frame.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+    frame.setAttribute('allowfullscreen', '');
+    frame.referrerPolicy = 'no-referrer';
+    video.style.display = 'none';
+    video.parentElement.insertBefore(frame, video);
+    if (proxyBadge) proxyBadge.classList.add('hidden');
+    if (proxyToggleState) proxyToggleState.textContent = 'Embedded player';
+    return;
   }
 
   let triedProxyFallback = useProxy;
@@ -2474,7 +2534,7 @@ function playStreamUrl(name, url, forceProxy = false) {
           if (!triedProxyFallback && (data.type === Hls.ErrorTypes.NETWORK_ERROR || data.details === 'manifestLoadError')) {
             triedProxyFallback = true;
             console.log('[Player] Direct playback blocked by CORS. Auto-switching to built-in CORS Proxy...');
-            const proxyUrl = `/api/proxy-stream?url=${encodeURIComponent(url)}`;
+            const proxyUrl = proxyUrlFor(url);
             initPlayer(proxyUrl, true);
             return;
           }
@@ -2511,7 +2571,7 @@ function playStreamUrl(name, url, forceProxy = false) {
       video.play().catch(() => {
         if (!triedProxyFallback) {
           triedProxyFallback = true;
-          initPlayer(`/api/proxy-stream?url=${encodeURIComponent(url)}`, true);
+          initPlayer(proxyUrlFor(url), true);
           return;
         }
         overlay.classList.remove('hidden');
@@ -2520,7 +2580,7 @@ function playStreamUrl(name, url, forceProxy = false) {
     }
   }
 
-  const initialUrl = useProxy ? `/api/proxy-stream?url=${encodeURIComponent(url)}` : url;
+  const initialUrl = useProxy ? proxyUrlFor(url) : url;
   loadHls()
     .catch(() => {})
     .then(() => initPlayer(initialUrl, useProxy));
@@ -2529,7 +2589,7 @@ function playStreamUrl(name, url, forceProxy = false) {
 function playChannel(channelId) {
   const ch = state.channels.find((c) => c.id === channelId);
   if (!ch) return;
-  playStreamUrl(ch.name, ch.url);
+  playStreamUrl(ch.name, ch.url, false, ch.referrer || '', ch.user_agent || '', ch.play_mode || '');
 }
 
 // ---------------------------------------------------------------------------
@@ -2830,6 +2890,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  document.querySelectorAll('[data-probe-source]').forEach((btn) => {
+    btn.addEventListener('click', () => probeSourceKind(btn.getAttribute('data-probe-source'), btn));
+  });
 
   document.getElementById('bulkSourceNamesInput').addEventListener('input', () => {
     updateBulkSourceLineCounter('bulkSourceNamesInput', 'bulkSourceLineCount');
@@ -4190,4 +4254,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('livePlayerDock').classList.add('hidden');
   });
+
+  const btnPlayerLoadUrl = document.getElementById('btnPlayerLoadUrl');
+  if (btnPlayerLoadUrl) {
+    btnPlayerLoadUrl.addEventListener('click', () => {
+      const raw = (document.getElementById('playerStreamUrl').value || '').trim();
+      if (!/^https?:\/\//i.test(raw)) {
+        showToast('❌ Enter an http(s) stream or player-page URL');
+        return;
+      }
+      playStreamUrl('Custom URL', raw);
+    });
+  }
 });

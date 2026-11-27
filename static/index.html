@@ -244,7 +244,8 @@
       <div class="player-status-overlay hidden" id="playerStatusOverlay"></div>
     </div>
     <div class="player-footer">
-      <input type="text" id="playerStreamUrl" readonly />
+      <input type="text" id="playerStreamUrl" placeholder="Paste a stream URL or a player page (pflix, thedaddy watch page)" />
+      <button class="btn btn-secondary btn-sm" id="btnPlayerLoadUrl">Load</button>
     </div>
   </div>
 
@@ -838,6 +839,18 @@ NHK World Japan"></textarea>
                 <button type="button" class="btn btn-primary btn-sm" id="btnToggleAddProvider">＋ Add Custom M3U Source</button>
               </div>
             </div>
+          </div>
+
+          <!-- Direct (non-M3U) source importers -->
+          <div class="tool-card mt-10" style="border-color: rgba(59, 130, 246, 0.35);">
+            <h3 style="margin-bottom:6px; color:#93c5fd;">🔎 Direct Source Importers</h3>
+            <p style="margin:0 0 10px; font-size:0.8rem; color:#94a3b8;">tvnow.st (JSON catalogue, 175 channels) imports through its own adapter; thedaddy.li (HTML grid, 900+ 24/7 channels) plays through the provider's own player embedded in the dock, so the request leaves from your IP. pflix.net blocks server reads — paste any pflix page into the player's Load box to watch it embedded.</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" data-probe-source="tvnow">📺 Test tvnow.st</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-probe-source="thedaddy">🎬 Test thedaddy.li</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-probe-source="pflix">🛡️ Check pflix.net</button>
+            </div>
+            <p id="probeSourceResult" class="hidden" style="margin:10px 0 0; font-size:0.8rem;"></p>
           </div>
 
           <!-- Add Custom M3U Source Form (collapsible) -->
