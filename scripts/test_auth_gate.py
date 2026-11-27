@@ -148,6 +148,12 @@ try:
     st, _, body = req("POST", "/api/auth/nonsense", headers={"X-Requested-With": "zemy-admin"})
     check("auth unknown endpoint -> 404", st == 404, (st, body[:80]))
 
+    # --- admin panel must not render its shell before sign-in ---
+    st, _, _ = req("GET", "/admin.css")
+    with open(os.path.join(REPO, "static", "admin.css"), encoding="utf-8") as fh:
+        css = " ".join(fh.read().split())
+    check("admin.css forces [hidden] display:none", st == 200 and "[hidden] { display: none !important; }" in css, st)
+
     # cleanup
     auth.delete_session(sid)
     with store.get_db() as conn:
