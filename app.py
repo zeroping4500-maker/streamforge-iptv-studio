@@ -46,6 +46,11 @@ STATIC_DIR.mkdir(exist_ok=True)
 SERVER_PORT = int(os.environ.get("PORT", "8765"))
 # Provider pages allowed inside the /watch shell (their players refuse foreign frames)
 PLAYER_EMBED_HOSTS = ("dembed.st", "thedaddy.li", "pflix.net", "dlhd.dad")
+# CDN edges that answer 403 unless the request carries the provider site's Referer
+PROVIDER_DEFAULT_REFERRERS = {
+    "wonvt.st": "https://tvnow.st/",
+    "tvnow.st": "https://tvnow.st/",
+}
 IS_LIGHTWEIGHT_PANEL = bool(
     os.environ.get("RENDER")
     or os.environ.get("RENDER_EXTERNAL_URL")
@@ -4491,11 +4496,15 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                 "User-Agent": user_agent or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/4.0",
                 "Accept": "*/*",
             }
-            if referrer:
-                req_headers["Referer"] = referrer
-            elif "cdntvtech" in target_url.lower():
+            effective_referrer = referrer
+            if not effective_referrer:
+                effective_referrer = PROVIDER_DEFAULT_REFERRERS.get(
+                    next((h for h in PROVIDER_DEFAULT_REFERRERS if h in target_url.lower()), ""), "")
+            if not effective_referrer and "cdntvtech" in target_url.lower():
                 pu = urllib.parse.urlparse(target_url)
-                req_headers["Referer"] = f"{pu.scheme}://{pu.netloc}/"
+                effective_referrer = f"{pu.scheme}://{pu.netloc}/"
+            if effective_referrer:
+                req_headers["Referer"] = effective_referrer
             range_hdr = self.headers.get("Range")
             if range_hdr:
                 req_headers["Range"] = range_hdr
@@ -4520,8 +4529,8 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
                     # Child playlists and segments inherit the same referrer/agent:
                     # hotlink checks are applied per segment on most CDNs.
                     fwd_qs = ""
-                    if referrer:
-                        fwd_qs += f"&ref={urllib.parse.quote(referrer, safe='')}"
+                    if effective_referrer:
+                        fwd_qs += f"&ref={urllib.parse.quote(effective_referrer, safe='')}"
                     if user_agent:
                         fwd_qs += f"&ua={urllib.parse.quote(user_agent, safe='')}"
                     rewritten = []

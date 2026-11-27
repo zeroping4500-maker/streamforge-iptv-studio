@@ -2476,7 +2476,14 @@ function playStreamUrl(name, url, forceProxy = false, referrer = '', userAgent =
 
   // Streams that need a Referer/User-Agent cannot send one from a <video> tag,
   // so they always start through the proxy, which forwards those headers.
-  const needsHeaders = Boolean(referrer || userAgent);
+  // tvnow's cache edge (wonvt.st) only answers the tvnow.st referrer and its CORS
+  // allows that origin alone, so it has to go through the proxy even when the
+  // channel record carries no referrer; the proxy supplies the default.
+  let refererLockedHost = false;
+  try {
+    refererLockedHost = /(^|\.)wonvt\.st$/i.test(new URL(url, window.location.href).hostname);
+  } catch (_) {}
+  const needsHeaders = Boolean(referrer || userAgent || refererLockedHost);
   const useProxy = Boolean(forceProxy || needsHeaders || state.forceStreamProxy);
   const proxyUrlFor = (target) => {
     let out = `/api/proxy-stream?url=${encodeURIComponent(target)}`;
