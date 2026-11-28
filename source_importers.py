@@ -10,6 +10,7 @@ network budget per call is bounded so weak hosts are not starved.
 """
 
 import concurrent.futures
+import difflib
 import gzip
 import html as html_mod
 import ipaddress
@@ -483,6 +484,292 @@ def fetch_smotret_channels(timeout: float = 12.0, workers: int = 8, max_resolve:
         "resolved": resolved_now,
         "embed_only": embed_only,
         "pending": pending,
+    }
+
+
+# ---------------------------------------------------------------------------
+# smotret.tv name search - the bulk search needs "does this channel exist"
+# without downloading and resolving all 700 cards, so the ten listing pages
+# are cached as an index and only the matched channel page is resolved.
+# ---------------------------------------------------------------------------
+
+SMOTRET_INDEX_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "data", "smotret_index_cache.json"
+)
+SMOTRET_RESOLVE_TTL = 6 * 3600
+
+_SMOTRET_QUOTES_RE = re.compile(r"[\"'`«»„“”]")
+_SMOTRET_NONWORD_RE = re.compile(r"[^0-9a-zа-яё]+")
+
+# Card names use digits ("1 канал") while people search in words ("Первый канал").
+_SMOTRET_NUMERALS = {
+    "первый": "1", "первая": "1", "второй": "2", "третий": "3", "четвертый": "4",
+    "пятый": "5", "шестой": "6", "седьмой": "7", "восьмой": "8", "девятый": "9",
+    "десятый": "10", "одиннадцатый": "11", "двенадцатый": "12",
+}
+
+
+def _smotret_norm(text: str) -> str:
+    s = (text or "").lower().replace("ё", "е")
+    s = _SMOTRET_NONWORD_RE.sub(" ", s)
+    words = [_SMOTRET_NUMERALS.get(word, word) for word in s.split()]
+    return re.sub(r"\s+", " ", " ".join(words)).strip()
+
+
+def _smotret_index_load(path: str) -> list:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return []
+    items = data.get("channels") if isinstance(data, dict) else None
+    return [c for c in items or [] if isinstance(c, dict) and c.get("name")]
+
+
+def _smotret_index_save(path: str, channels: list) -> None:
+    try:
+        folder = os.path.dirname(path)
+        if folder:
+            os.makedirs(folder, exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as handle:
+            json.dump({"v": 1, "saved_at": int(time.time()), "channels": channels}, handle,
+                      ensure_ascii=False)
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
+def smotret_channel_index(timeout: float = 12.0, cache_path: str = "",
+                          ttl: int = SMOTRET_CACHE_TTL, refresh: bool = False) -> list:
+    """
+    Every card from the ten smotret.tv category pages: [{id, name, page, logo, category}].
+
+    Cached for ``ttl`` seconds so bulk search costs one file read; ``refresh``
+    forces ten fresh listing requests.
+    """
+    index_file = cache_path or SMOTRET_INDEX_FILE
+    cached = _smotret_index_load(index_file)
+    fresh = False
+    try:
+        with open(index_file, "r", encoding="utf-8") as handle:
+            fresh = int(json.load(handle).get("saved_at") or 0) + ttl > time.time()
+    except Exception:
+        fresh = False
+    if cached and fresh and not refresh:
+        return cached
+
+    discovered = {}
+    for slug, label in SMOTRET_CATEGORIES:
+        url = SMOTRET_BASE + (f"/{slug}/" if slug else "/")
+        res = http_get(url, referrer=SMOTRET_REFERRER, timeout=timeout, max_bytes=2 * 1024 * 1024)
+        if not res["ok"] or _is_cloudflare_challenge(res):
+            continue
+        for channel in parse_smotret_listing(res["body"].decode("utf-8", errors="ignore"), label):
+            known = discovered.get(channel["id"])
+            if known is None:
+                discovered[channel["id"]] = channel
+            elif known["category"] == "General" and channel["category"] != "General":
+                known["category"] = channel["category"]
+                known["logo"] = known["logo"] or channel["logo"]
+    if discovered:
+        channels = sorted(discovered.values(), key=lambda c: c["name"].lower())
+        _smotret_index_save(index_file, channels)
+        return channels
+    return cached
+
+
+def _smotret_score(query: str, name: str) -> float:
+    """0..1 name similarity that tolerates the channel-card decorations."""
+    q = _smotret_norm(query)
+    n = _smotret_norm(_SMOTRET_QUOTES_RE.sub(" ", name))
+    if not q or not n:
+        return 0.0
+    if q == n:
+        return 1.0
+    alts = {n}
+    for suffix in (" hd", " sd", " fhd", " uhd", " 4k", " tv", " online"):
+        if n.endswith(suffix):
+            alts.add(n[: -len(suffix)].strip())
+    if q in alts:
+        return 1.0
+    if any(a.startswith(q) or q.startswith(a) for a in alts):
+        return 0.9
+    if any(q in a for a in alts):
+        return 0.85
+    q_tokens, n_tokens = set(q.split()), set(n.split())
+    if q_tokens and q_tokens <= n_tokens:
+        return 0.82
+    overlap = len(q_tokens & n_tokens) / max(1, len(q_tokens))
+    ratio = difflib.SequenceMatcher(None, q, n).ratio()
+    return max(round(overlap * 0.8, 3), round(ratio * 0.8, 3))
+
+
+def search_smotret_channels(query: str, limit: int = 4, timeout: float = 12.0,
+                            cache_path: str = "", min_score: float = 0.6) -> list:
+    """Best name matches from the smotret.tv index, each with a ``score``."""
+    if not (query or "").strip():
+        return []
+    ranked = []
+    for channel in smotret_channel_index(timeout=timeout, cache_path=cache_path):
+        score = _smotret_score(query, channel.get("name", ""))
+        if score >= min_score:
+            ranked.append(dict(channel, score=score))
+    ranked.sort(key=lambda c: (-c["score"], c["name"].lower()))
+    return ranked[:limit]
+
+
+def resolve_smotret_matches(query: str, limit: int = 2, timeout: float = 12.0,
+                            min_score: float = 0.82, cache_path: str = "",
+                            resolve_ttl: int = SMOTRET_RESOLVE_TTL) -> list:
+    """
+    Name -> playable HLS: the matched channel pages only, cached per channel id.
+
+    Returns [{name, url, streams, page, player, logo, category, score, embed}].
+    The player page is the referrer some edges require, so it travels with the URL.
+    """
+    cache_file = cache_path or SMOTRET_CACHE_FILE
+    cache = _smotret_load_cache(cache_file)
+    now = int(time.time())
+    out = []
+    changed = False
+    for channel in search_smotret_channels(query, limit=limit, timeout=timeout,
+                                           cache_path=cache_path, min_score=min_score):
+        entry = cache.get(channel["id"]) or {}
+        url = entry.get("url") or ""
+        if entry.get("embed") and entry.get("player"):
+            url = entry["player"]
+        if not (url.startswith("http") and now - int(entry.get("ts") or 0) < resolve_ttl):
+            result = resolve_smotret_channel(channel["page"], timeout=timeout)
+            base = {"name": channel["name"], "category": channel.get("category", "Live TV"),
+                    "logo": channel.get("logo", ""), "ts": now}
+            if result["ok"]:
+                base.update({"url": result["streams"][0], "streams": result["streams"][:4],
+                             "player": result["player"]})
+            elif result.get("player"):
+                base.update({"embed": True, "player": result["player"]})
+            else:
+                continue
+            cache[channel["id"]] = base
+            changed = True
+            entry = base
+            url = base.get("url") or base.get("player") or ""
+        if not url:
+            continue
+        out.append({
+            "name": channel["name"],
+            "url": url,
+            "streams": entry.get("streams") or ([] if entry.get("embed") else [url]),
+            "page": channel["page"],
+            "player": entry.get("player") or SMOTRET_REFERRER,
+            "logo": entry.get("logo") or channel.get("logo", ""),
+            "category": entry.get("category") or channel.get("category", "Live TV"),
+            "embed": bool(entry.get("embed")),
+            "score": channel["score"],
+        })
+    if changed:
+        _smotret_save_cache(cache_file, cache)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# televizo.live - channel page -> player iframe -> signed HLS URL
+# The channel page only frames a player, and that player mints a token that
+# lives from about one to five hours. A resolved URL is therefore a snapshot:
+# callers cache it briefly and resolve again once it expires.
+# ---------------------------------------------------------------------------
+
+TELEVIZO_REFERRER = "https://televizo.live/"
+
+TELEVIZO_AD_MARKERS = (
+    "bl.rutube.ru",
+    "rtbcdn.ru",
+    "adfinity",
+    "/hls-vod/",
+    "rutube.ru/play/slim",
+    "yandex.ru/ads",
+    "ads.",
+)
+
+_TELEVIZO_IFRAME_RE = re.compile(r'<iframe[^>]+src=["\']([^"\']+)', re.I)
+_TELEVIZO_FILE_RE = re.compile(
+    r'["\'](?:file|source|src|hls|url)["\']\s*[:=]\s*["\']([^"\']+\.m3u8[^"\']*)', re.I
+)
+_TELEVIZO_M3U8_RE = re.compile(r'https?://[^\s"\'<>\\]+\.m3u8[^\s"\'<>\\]*')
+
+
+def parse_televizo_players(page_html: str) -> list:
+    """Player iframe URLs from a televizo.live channel page, in page order."""
+    out = []
+    for raw in _TELEVIZO_IFRAME_RE.findall(page_html or ""):
+        url = (raw or "").strip()
+        if url.startswith("//"):
+            url = "https:" + url
+        if url.startswith("http") and url not in out:
+            out.append(url)
+    return out
+
+
+def parse_televizo_streams(player_html: str) -> list:
+    """Signed HLS URLs a televizo player page declares, longest lived first."""
+    found = []
+    for raw in _TELEVIZO_FILE_RE.findall(player_html or "") + _TELEVIZO_M3U8_RE.findall(player_html or ""):
+        url = (raw or "").strip().replace("\\/", "/")
+        if not url.startswith("http") or url in found:
+            continue
+        low = url.lower()
+        if any(marker in low for marker in TELEVIZO_AD_MARKERS):
+            continue
+        found.append(url)
+    # The path form (/<nonce>/<ch>/<exp>/index.m3u8) outlives the query form.
+    found.sort(key=lambda u: (0 if "?" not in u else 1, u))
+    return found
+
+
+def resolve_televizo_channel(page_url: str, timeout: float = 12.0) -> dict:
+    """
+    Channel page -> player iframe -> HLS, without a browser.
+
+    Providers that only answer a real browser (403 to plain HTTP) report
+    ``browser_required`` so callers can fall back to Playwright where it exists.
+    Returns {ok, streams, player, referrer, error, browser_required}.
+    """
+    if not page_url.startswith(("http://", "https://")):
+        return {"ok": False, "streams": [], "player": "", "referrer": TELEVIZO_REFERRER,
+                "error": "invalid channel page", "browser_required": False}
+    page = http_get(page_url, referrer=TELEVIZO_REFERRER, timeout=timeout,
+                    max_bytes=2 * 1024 * 1024)
+    if not page["ok"]:
+        return {"ok": False, "streams": [], "player": "", "referrer": TELEVIZO_REFERRER,
+                "error": page["error"], "browser_required": page["status"] in (403, 429, 503)}
+
+    html_text = page["body"].decode("utf-8", errors="ignore")
+    streams = parse_televizo_streams(html_text)
+    player_url = ""
+    for candidate in parse_televizo_players(html_text):
+        player_url = urllib.parse.urljoin(page_url, candidate)
+        player = http_get(player_url, referrer=page_url, timeout=timeout,
+                          max_bytes=1024 * 1024)
+        if not player["ok"]:
+            if player["status"] in (403, 429, 503):
+                return {"ok": False, "streams": [], "player": player_url, "referrer": page_url,
+                        "error": f"player page {player['error']}", "browser_required": True}
+            continue
+        streams.extend(parse_televizo_streams(player["body"].decode("utf-8", errors="ignore")))
+        if streams:
+            break
+
+    unique = []
+    for url in streams:
+        if url not in unique:
+            unique.append(url)
+    return {
+        "ok": bool(unique),
+        "streams": unique[:4],
+        "player": player_url,
+        "referrer": player_url or page_url,
+        "error": "" if unique else "no HLS in channel page or player",
+        "browser_required": False,
     }
 
 

@@ -53,7 +53,10 @@ def export_all_playlists_to_disk(output_dir: Path) -> list:
             ).fetchall()
         channels = [dict(c) for c in ch_rows]
 
-        m3u_text = build_m3u_export(pl, channels)
+        # Expired televizo tokens cannot play, so their lines point at the public
+        # endpoint that re-resolves the token when a viewer opens the channel.
+        base_url = os.environ.get("RENDER_EXTERNAL_URL") or "https://zemyiptv.onrender.com"
+        m3u_text = build_m3u_export(pl, channels, base_url=base_url)
 
         # Write named file and id-based file
         named_path = output_dir / f"{safe_name}.m3u"

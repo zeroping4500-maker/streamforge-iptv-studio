@@ -240,6 +240,139 @@ check(
     liveness.token_expiry("http://h/a.m3u8?hdnts=st=1~exp=1900000000~acl=%2f*") == 1900000000,
 )
 
+import source_importers as ext
+
+check(
+    "liveness: wmsAuthSign expiry is understood",
+    liveness.token_expiry("http://h/157/index.m3u8?wmsAuthSign=abc-1900000000-321") == 1900000000,
+)
+check(
+    "liveness: path-token expiry is understood",
+    liveness.token_expiry("http://h/nonce/157/1900000000/index.m3u8") == 1900000000,
+)
+check(
+    "liveness: plain path numbers are not mistaken for expiry",
+    liveness.token_expiry("http://h/live/1234/index.m3u8") == 0,
+)
+check(
+    "televizo: player iframe is found",
+    ext.parse_televizo_players('<iframe src="//cdn.example/p.php?sp=2"></iframe>') == ["https://cdn.example/p.php?sp=2"],
+)
+televizo_player_html = (
+    'var p={file:"https://tvcdnpotok.com/157/index.m3u8?wmsAuthSign=a-1900000000-1",'
+    'source:"https://bl.rutube.ru/route/x.m3u8"};'
+)
+check(
+    "televizo: signed HLS is parsed and ad edges are dropped",
+    ext.parse_televizo_streams(televizo_player_html) == ["https://tvcdnpotok.com/157/index.m3u8?wmsAuthSign=a-1900000000-1"],
+)
+
+_real_http_get = ext.http_get
+
+
+def _fake_page_only(url, referrer="", **kwargs):
+    if "player" in url:
+        return {"ok": False, "status": 403, "body": b"", "error": "HTTP 403 Forbidden"}
+    return {"ok": True, "status": 200, "body": b'<iframe src="https://player.test/p.php"></iframe>', "error": ""}
+
+
+ext.http_get = _fake_page_only
+try:
+    res = ext.resolve_televizo_channel("https://televizo.live/channel.html")
+finally:
+    ext.http_get = _real_http_get
+check(
+    "televizo: browser-only player is reported instead of crashing",
+    res["ok"] is False and res["browser_required"] is True,
+    res,
+)
+
+
+def _fake_full(url, referrer="", **kwargs):
+    if "player" in url:
+        return {"ok": True, "status": 200, "body": televizo_player_html.encode(), "error": ""}
+    return {"ok": True, "status": 200, "body": b'<iframe src="https://player.test/p.php"></iframe>', "error": ""}
+
+
+ext.http_get = _fake_full
+try:
+    res = ext.resolve_televizo_channel("https://televizo.live/channel.html")
+finally:
+    ext.http_get = _real_http_get
+check(
+    "televizo: resolver returns the signed HLS over plain HTTP",
+    res["ok"] and res["streams"][0].startswith("https://tvcdnpotok.com/157/"),
+    res,
+)
+
+_real_resolve_tv = ext.resolve_televizo_channel
+ext.resolve_televizo_channel = lambda page, timeout=12: {
+    "ok": True, "streams": ["http://127.0.0.1:9/x.m3u8"], "player": "https://player.test/p.php",
+    "referrer": "https://player.test/p.php", "error": "", "browser_required": False,
+}
+try:
+    res = app_module.extract_televizo_stream_sync("https://televizo.live/channel.html", timeout_sec=5)
+finally:
+    ext.resolve_televizo_channel = _real_resolve_tv
+check(
+    "televizo: sync extraction works without Chromium",
+    res.get("found") is True and res.get("via") == "http",
+    res,
+)
+
+# An expired televizo line must not be dropped from the export: its channel still
+# exists, so the line points at the endpoint that re-resolves the token.
+expired_tv = "https://tvcdnpotok.com/157/index.m3u8?wmsAuthSign=a-%d-1" % (int(time.time()) - 60)
+expired_plain = "https://other.invalid/x.m3u8?exp=%d" % (int(time.time()) - 60)
+export = app_module.build_m3u_export(
+    {"name": "Test", "id": "pl1"},
+    [
+        {"id": "c1", "name": "Россия 1", "url": expired_tv, "tvg_id": "ru1", "tvg_name": "Россия 1", "logo": ""},
+        {"id": "c2", "name": "Zeta Not A Televizo Channel", "url": expired_plain, "tvg_id": "x1", "tvg_name": "Zeta", "logo": ""},
+    ],
+    smart_failover=False,
+    base_url="https://zemyiptv.onrender.com",
+)
+check(
+    "export: expired televizo line becomes the self-refreshing endpoint",
+    "/api/stream/c1/live.m3u8?key=" in export,
+    export,
+)
+check(
+    "export: an expired non-televizo line is still left out",
+    "other.invalid" not in export,
+    export,
+)
+
+check("smotret: Russian numeral matches the card name", ext._smotret_score("Первый канал", "1 канал") == 1.0)
+
+_real_resolve_sm = ext.resolve_smotret_matches
+ext.resolve_smotret_matches = lambda q, limit=2, **kw: [{
+    "name": "Россия 1", "url": "https://stream.test/rossiya1/index.m3u8",
+    "streams": ["https://stream.test/rossiya1/index.m3u8"],
+    "page": "https://smotret.tv/rossiya1", "player": "https://smotret.tv/live/rossiya_1.html",
+    "logo": "", "category": "Общие", "embed": False, "score": 1.0,
+}]
+try:
+    hits = app_module.search_smotret_live_streams_fast("Россия 1", check_live=False)
+    found = app_module.find_stream_sources_by_name(
+        "Россия 1", check_live=False, include_web=False, include_yt=False,
+        include_rutube=False, include_televizo=False, include_openindex=False,
+        include_smotret=True, strict=False,
+    )
+finally:
+    ext.resolve_smotret_matches = _real_resolve_sm
+check(
+    "smotret: candidate keeps the player page as referrer",
+    bool(hits) and hits[0]["referrer"] == "https://smotret.tv/live/rossiya_1.html",
+    hits,
+)
+check(
+    "smotret: bulk source search includes the RU catalogue",
+    any(c.get("source") == "📺 Smotret.tv" for c in found),
+    found,
+)
+
 failed = [r for r in results if not r[1]]
 print(f"\n{len(results) - len(failed)}/{len(results)} passed")
 sys.exit(1 if failed else 0)

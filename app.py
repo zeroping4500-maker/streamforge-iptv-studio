@@ -2203,6 +2203,25 @@ def get_televizo_catalog() -> list:
         except Exception:
             return []
 
+def remember_televizo_stream(page_url: str, stream_url: str) -> None:
+    """
+    Keep a freshly resolved token in the in-memory catalog so name search stops
+    handing out the previous, expired one. Nothing is written to disk: the
+    database holds the channel's link and the catalog file is a page index.
+    """
+    if not page_url or not stream_url:
+        return
+    catalog = get_televizo_catalog()
+    with TELEVIZO_CATALOG_LOCK:
+        for entry in catalog:
+            if entry.get("page", "").rstrip("/") != page_url.rstrip("/"):
+                continue
+            entry["best_m3u8"] = stream_url
+            entry["all_m3u8"] = ([stream_url] + [u for u in entry.get("all_m3u8") or [] if u != stream_url])[:4]
+            entry["updated_at"] = int(time.time())
+            break
+
+
 def _clean_channel_for_televizo(name: str) -> str:
     s = (name or "").strip()
     s = re.sub(r"^[A-Z]{2,3}\s*[:|\-•]\s*", "", s)
@@ -2269,8 +2288,43 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
     ad_domains = ["bl.rutube.ru/route", "rtbcdn.ru", "/hls-vod/", "adfinity", "rutube.ru/play/slim"]
     streams = []
 
+    # Chromium-free path: the channel page frames a player that prints its HLS URLs.
+    http_res = ext.resolve_televizo_channel(page_url, timeout=max(6, timeout_sec))
+    if http_res.get("ok"):
+        http_streams = http_res.get("streams") or []
+        probe_status = "unknown"
+        for cand_u in http_streams[:4]:
+            pr = probe_stream({"url": cand_u, "referrer": http_res.get("referrer", "")}, timeout=3.5)
+            if pr["status"] == "online":
+                probe_status = "online"
+                http_streams = [cand_u] + [u for u in http_streams if u != cand_u]
+                break
+        return {
+            "found": True,
+            "url": http_streams[0],
+            "referrer": http_res.get("referrer", ""),
+            "all_urls": http_streams,
+            "page": page_url,
+            "name": ch_info.get("name", page_or_name),
+            "logo": ch_info.get("logo", ""),
+            "category": ch_info.get("category", "Televizo Live"),
+            "probe_status": probe_status,
+            "source": "📺 Televizo Live",
+            "via": "http",
+        }
+
     try:
         from playwright.sync_api import sync_playwright
+    except Exception:
+        return {
+            "found": False,
+            "error": http_res.get("error") or "player needs a browser and Chromium is not installed",
+            "page": page_url,
+            "browser_required": bool(http_res.get("browser_required")),
+            "via": "http",
+        }
+
+    try:
         with sync_playwright() as p:
             browser = p.chromium.launch(
                 headless=True,
@@ -2393,7 +2447,10 @@ def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True
         return []
 
     u = res["url"]
-    pr = probe_stream({"name": info.get("name", channel_name), "url": u}, timeout=3.0) if check_live else {"status": "online", "latency_ms": 180}
+    if res.get("probe_status") == "online":
+        pr = {"status": "online", "latency_ms": 180}
+    else:
+        pr = probe_stream({"name": info.get("name", channel_name), "url": u, "referrer": res.get("referrer", "")}, timeout=3.0) if check_live else {"status": "online", "latency_ms": 180}
     return [{
         "id": str(uuid.uuid4()),
         "name": f"{info.get('name', channel_name)} (Televizo Live)",
@@ -2402,6 +2459,7 @@ def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True
         "url": u,
         "direct_hls_url": u,
         "watch_url": info.get("page", ""),
+        "referrer": res.get("referrer", ""),
         "quality": "HD",
         "source": "📺 Televizo Live",
         "provider": "Televizo Live Extractor",
@@ -2414,6 +2472,50 @@ def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True
         "latency_ms": pr.get("latency_ms", 180),
         "category": info.get("category", "Televizo Live"),
     }]
+
+
+def search_smotret_live_streams_fast(channel_name: str, check_live: bool = True, limit: int = 2) -> list:
+    """Name -> smotret.tv card -> HLS, or the card's own player when it is embed-only."""
+    if not channel_name or len(channel_name.strip()) < 2:
+        return []
+    try:
+        matches = ext.resolve_smotret_matches(channel_name, limit=limit)
+    except Exception as exc:
+        print(f"[Smotret Search] {channel_name}: {exc}")
+        return []
+    out = []
+    for match in matches:
+        u = match.get("url") or ""
+        if not u.startswith("http"):
+            continue
+        embed = bool(match.get("embed"))
+        pr = {"status": "online", "latency_ms": 180}
+        if check_live and not embed:
+            pr = probe_stream({"url": u, "referrer": match.get("player", "")}, timeout=3.5)
+        out.append({
+            "id": str(uuid.uuid4()),
+            "name": f"{match['name']} (Smotret.tv)",
+            "query_name": channel_name,
+            "raw_title": match["name"],
+            "url": u,
+            "direct_hls_url": "" if embed else u,
+            "watch_url": match.get("page", ""),
+            "referrer": match.get("player", ""),
+            "quality": "HD",
+            "source": "📺 Smotret.tv",
+            "provider": "Smotret.tv (RU)",
+            "logo": match.get("logo") or fast_lookup_logo(channel_name),
+            "country": "RU",
+            "country_badge": "🇷🇺 RU",
+            "match_confidence": int(round(match.get("score", 0.9) * 100)),
+            "confidence": int(round(match.get("score", 0.9) * 100)),
+            "status": pr.get("status", "online"),
+            "latency_ms": pr.get("latency_ms", 180),
+            "category": match.get("category", "RU Live TV"),
+            "embed": embed,
+            "play_mode": "iframe" if embed else "",
+        })
+    return out
 
 PROGRESS_LOCK = threading.Lock()
 PROGRESS_STATE = {
@@ -2437,6 +2539,92 @@ def update_task_progress(task_key: str, active: bool, current: int, total: int, 
             "message": message,
             "updated_at": int(time.time()),
         }
+
+
+def _televizo_page_index() -> dict:
+    """Normalized channel name -> televizo page, for deciding what can be re-resolved."""
+    pages = {}
+    for entry in get_televizo_catalog():
+        norm = _clean_channel_for_televizo(entry.get("name", ""))
+        if norm and entry.get("page"):
+            pages.setdefault(norm, entry["page"])
+    return pages
+
+
+_TELEVIZO_REFRESH_AT = {}
+_TELEVIZO_REFRESH_LOCK = threading.Lock()
+
+
+def _refresh_televizo_link(channel: dict, min_interval: int = 120) -> str:
+    """
+    Fresh televizo token for a channel whose stored link has died.
+
+    Throttled per channel, so a player retrying an expired line does not turn
+    into a stream of extraction requests. Returns "" when the channel is not on
+    televizo or nothing fresh could be resolved.
+    """
+    info = find_televizo_channel_info(channel.get("name", ""))
+    if not info or not info.get("page"):
+        return ""
+    key = str(channel.get("id") or info["page"])
+    now = time.time()
+    with _TELEVIZO_REFRESH_LOCK:
+        if now - _TELEVIZO_REFRESH_AT.get(key, 0) < min_interval:
+            return ""
+        _TELEVIZO_REFRESH_AT[key] = now
+        if len(_TELEVIZO_REFRESH_AT) > 2000:
+            _TELEVIZO_REFRESH_AT.clear()
+
+    res = extract_televizo_stream_sync(info["page"], timeout_sec=10)
+    url = res.get("url") if res.get("found") else ""
+    if not url:
+        return ""
+    if res.get("probe_status") != "online":
+        probe = probe_stream({"url": url, "referrer": res.get("referrer", "")}, timeout=3.0)
+        if probe["status"] != "online":
+            return ""
+    referrer = res.get("referrer", "")
+    try:
+        with get_db() as conn:
+            conn.execute(
+                """
+                UPDATE channels
+                SET url = ?, referrer = ?, status = 'online', latency_ms = 180,
+                    last_checked_at = ?, fail_count = 0, last_error = ''
+                WHERE id = ?
+                """,
+                (url, referrer, int(time.time()), channel.get("id")),
+            )
+    except Exception as exc:
+        print(f"[Televizo] could not store refreshed link: {exc}")
+    remember_televizo_stream(info["page"], url)
+    return url
+
+
+def _mark_televizo_failure(channel: dict, now: int, reason: str) -> None:
+    """
+    Record why a link was not refreshed.
+
+    An unrefreshed channel is not automatically offline: only a link whose token
+    has expired is known to be dead, and claiming otherwise is what made the old
+    status lie.
+    """
+    expiry = liveness.token_expiry(channel.get("url", ""))
+    expired = bool(expiry and expiry <= now)
+    try:
+        with get_db() as conn:
+            if expired:
+                conn.execute(
+                    "UPDATE channels SET status = 'offline', last_error = ?, last_checked_at = ? WHERE id = ?",
+                    (f"link expired, refresh failed: {reason}"[:300], now, channel["id"]),
+                )
+            else:
+                conn.execute(
+                    "UPDATE channels SET last_error = ? WHERE id = ?",
+                    (f"refresh failed: {reason}"[:300], channel["id"]),
+                )
+    except Exception as exc:
+        print(f"[Televizo] could not record failure for {channel.get('name')}: {exc}")
 
 
 def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = True) -> dict:
@@ -2471,6 +2659,24 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
         update_task_progress("televizo_sync", False, 0, 0, "", 0, 0, "No Televizo channels found")
         return {"ok": True, "refreshed_count": 0, "total_matched": 0, "updated": 0, "message": "No Televizo channels found"}
 
+    # A signed link with more than ten minutes left still plays: re-extracting it
+    # only burns requests, so those channels are skipped and counted honestly.
+    now_ts = int(time.time())
+    still_fresh = []
+    pending = []
+    for ch in to_refresh:
+        expiry = liveness.token_expiry(ch.get("url", ""))
+        if expiry and expiry - now_ts > 600 and ch.get("status") == "online":
+            still_fresh.append(ch)
+        else:
+            pending.append(ch)
+    to_refresh = pending
+    if not to_refresh:
+        message = f"{len(still_fresh)} Televizo links still have time left"
+        update_task_progress("televizo_sync", False, 0, 0, "", 0, 0, message)
+        return {"ok": True, "refreshed_count": 0, "total_matched": len(to_refresh),
+                "skipped_fresh": len(still_fresh), "updated": 0, "message": message}
+
     # Prioritize offline / broken channels first
     to_refresh.sort(key=lambda c: 0 if c.get("status") in ("offline", "warning") else 1)
 
@@ -2489,16 +2695,21 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                 fresh_url = res.get("url") if res.get("found") else ""
                 fresh_ref = res.get("referrer") or ch.get("referrer") or ""
                 source_label = "Televizo Live Extractor"
+                failure_reason = res.get("error", "") or "no stream extracted"
 
                 # Verify extracted stream isn't returning 404/410; if dead, fall back to multi-source search
-                if fresh_url:
+                if fresh_url and res.get("probe_status") != "online":
                     pr_check = probe_stream({"url": fresh_url, "referrer": fresh_ref}, timeout=3.5)
                     if pr_check["status"] != "online":
+                        failure_reason = f"extracted link did not play ({pr_check.get('error') or pr_check['status']})"
                         fresh_url = ""
 
                 if not fresh_url:
+                    # Only HLS sources can replace an HLS channel; YouTube and RuTube
+                    # embeds would be written into the playlist as unplayable links.
                     alt_cands = find_stream_sources_by_name(
-                        ch_name, limit=4, check_live=True, include_televizo=False, include_web=False
+                        ch_name, limit=4, check_live=True, include_televizo=False,
+                        include_web=False, include_yt=False, include_rutube=False,
                     )
                     online_alts = [c for c in alt_cands if c.get("status") == "online" and c.get("url")]
                     if online_alts:
@@ -2520,6 +2731,9 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                         if pid and pid not in touched_playlists:
                             touch_playlist(conn, pid)
                             touched_playlists.add(pid)
+                    is_televizo_link = any(k in fresh_url.lower() for k in ("tvcdnpotok", "cdntvmedia", "cdntvtech"))
+                    if is_televizo_link and res.get("page"):
+                        remember_televizo_stream(res["page"], fresh_url)
                     add_or_update_channel_source_db(
                         channel_id=ch["id"],
                         name=ch_name,
@@ -2532,9 +2746,11 @@ def sync_televizo_playlist_streams(playlist_id: str = None, background: bool = T
                     renewed_count += 1
                 else:
                     failed_count += 1
+                    _mark_televizo_failure(ch, now, failure_reason)
             except Exception as e:
                 failed_count += 1
                 print(f"[Televizo Auto-Renew] Error refreshing {ch_name}: {e}")
+                _mark_televizo_failure(ch, now, str(e))
             update_task_progress("televizo_sync", True, idx, total_items, ch_name, renewed_count, failed_count, f"Synced {idx}/{total_items} · Renewed {renewed_count}")
         update_task_progress("televizo_sync", False, total_items, total_items, "Complete", renewed_count, failed_count, f"Done: Renewed {renewed_count}/{total_items} channels")
         return renewed_count
@@ -2602,7 +2818,7 @@ def _expand_channel_aliases(query: str) -> list:
     return variants[:3]
 
 
-def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, include_openindex: bool = True, target_country: str = "", strict: bool = True) -> list:
+def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, include_openindex: bool = True, include_smotret: bool = True, target_country: str = "", strict: bool = True) -> list:
     """
     Parallel multi-source channel search across:
     - 35,000+ indexed FAST/IPTV-Org/Free-TV streams (with alias expansion)
@@ -2628,6 +2844,15 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
             return []
         for q_var in aliases:
             hits = search_televizo_live_streams_fast(q_var, check_live=check_live)
+            if hits:
+                return hits
+        return []
+
+    def _run_smotret():
+        if not include_smotret:
+            return []
+        for q_var in aliases:
+            hits = search_smotret_live_streams_fast(q_var, check_live=check_live)
             if hits:
                 return hits
         return []
@@ -2666,12 +2891,15 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
         futures["indexed"] = search_pool.submit(_run_indexed)
         if include_openindex:
             futures["openindex"] = search_pool.submit(_run_openindex)
-        if include_televizo and not IS_LIGHTWEIGHT_PANEL:
-            futures["televizo"] = search_pool.submit(_run_televizo)
-        elif include_televizo:
-            # On lightweight Render panel, check televizo catalog match first before launching Chromium
-            if find_televizo_channel_info(query):
+        if include_televizo:
+            # The extractor resolves over plain HTTP first, so the lightweight
+            # panel can search televizo without Chromium.
+            if IS_LIGHTWEIGHT_PANEL and not find_televizo_channel_info(query):
+                pass
+            else:
                 futures["televizo"] = search_pool.submit(_run_televizo)
+        if include_smotret:
+            futures["smotret"] = search_pool.submit(_run_smotret)
         if include_yt:
             futures["yt"] = search_pool.submit(_run_yt)
         if include_rutube:
@@ -2689,6 +2917,7 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
             return []
 
     televizo_candidates = _safe_res("televizo")
+    smotret_candidates = _safe_res("smotret")
     rutube_candidates = _safe_res("rutube")
     yt_candidates = _safe_res("yt")
     indexed_candidates = _safe_res("indexed")
@@ -2696,7 +2925,7 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
     openindex_candidates = _safe_res("openindex")
 
     all_candidates = []
-    for c in televizo_candidates + indexed_candidates + openindex_candidates + rutube_candidates + yt_candidates + web_candidates:
+    for c in televizo_candidates + smotret_candidates + indexed_candidates + openindex_candidates + rutube_candidates + yt_candidates + web_candidates:
         if c.get("url") and c["url"] not in seen_urls:
             seen_urls.add(c["url"])
             all_candidates.append(c)
@@ -2724,7 +2953,7 @@ def find_stream_sources_by_name(query: str, tvg_id: str = "", limit: int = 8, ch
     return top_candidates[:limit]
 
 
-def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, target_country: str = "", strict: bool = True) -> list:
+def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_web: bool = True, include_yt: bool = True, include_rutube: bool = True, include_televizo: bool = True, include_smotret: bool = True, target_country: str = "", strict: bool = True) -> list:
     """
     Takes up to 100 items: each item can be a string (channel name) or dict {"id": ..., "name": ..., "tvg_id": ...}.
     Finds multiple stream candidates per channel, probes EVERY option concurrently before displaying,
@@ -2950,6 +3179,51 @@ def bulk_find_sources_for_names(queries: list, check_live: bool = True, include_
                                 "tvg_id": q_obj["tvg_id"],
                                 "logo": th.get("logo") or fast_lookup_logo(th["name"]),
                                 "category": q_obj["category"] or "Live TV",
+                            })
+                        target.sort(key=_opt_rank_key)
+
+    # Phase 2d: Concurrent Smotret.tv (RU catalog) fallback for items still missing an online stream
+    if include_smotret:
+        needs_smotret = [
+            (idx, item["q_obj"])
+            for idx, item in enumerate(per_query_options)
+            if not item["final_options"] or item["final_options"][0].get("status") != "online" or len(item["final_options"]) < 3
+        ][:25]
+
+        if needs_smotret:
+            def _fetch_smotret(entry):
+                idx, q_obj = entry
+                try:
+                    hits = search_smotret_live_streams_fast(q_obj["name"], check_live=check_live, limit=1)
+                    return idx, hits
+                except Exception:
+                    return idx, []
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+                for idx, sm_hits in pool.map(_fetch_smotret, needs_smotret):
+                    if sm_hits:
+                        target = per_query_options[idx]["final_options"]
+                        q_obj = per_query_options[idx]["q_obj"]
+                        for sh in sm_hits:
+                            target.append({
+                                "option_id": len(target) + 1,
+                                "name": sh["name"],
+                                "url": sh["url"],
+                                "quality": sh.get("quality", "HD"),
+                                "source": sh.get("source", "📺 Smotret.tv"),
+                                "latency_ms": sh.get("latency_ms", 180),
+                                "status": sh.get("status", "online"),
+                                "error": "",
+                                "confidence": sh.get("confidence", 90),
+                                "match_confidence": sh.get("match_confidence", 90),
+                                "country_code": sh.get("country", "RU"),
+                                "country_badge": sh.get("country_badge", "🇷🇺 RU"),
+                                "match_level": "exact",
+                                "tvg_id": q_obj["tvg_id"],
+                                "logo": sh.get("logo") or fast_lookup_logo(sh["name"]),
+                                "category": q_obj["category"] or "Live TV",
+                                "embed": bool(sh.get("embed")),
+                                "play_mode": sh.get("play_mode", ""),
                             })
                         target.sort(key=_opt_rank_key)
 
@@ -3357,15 +3631,19 @@ def build_m3u_export(playlist: dict, channels: list, smart_failover: bool = Fals
     out = [header]
 
     clean_base = (base_url or "").rstrip("/")
+    televizo_pages = _televizo_page_index() if clean_base else {}
 
     for ch in channels:
         if not ch.get("enabled", 1):
             continue
         stream_url = ch.get("url", "")
-        # An expired signature can never play, in any player: leave it out instead of
-        # shipping a dead line a viewer will blame the playlist for.
+        # An expired signature can never play as-is. A televizo link is not a dead
+        # channel though: it gets the stable endpoint, which re-resolves the token,
+        # while anything else is left out instead of shipping a line that cannot play.
         expiry = liveness.token_expiry(stream_url)
-        if expiry and expiry <= int(time.time()):
+        if expiry and expiry <= int(time.time()) and not (
+            clean_base and _clean_channel_for_televizo(ch.get("name", "")) in televizo_pages
+        ):
             continue
         attrs = []
         if ch.get("tvg_id"):
@@ -3386,7 +3664,7 @@ def build_m3u_export(playlist: dict, channels: list, smart_failover: bool = Fals
         if ch.get("referrer"):
             out.append(f'#EXTVLCOPT:http-referrer={ch["referrer"]}')
 
-        if smart_failover and clean_base:
+        if clean_base and (smart_failover or (expiry and expiry <= int(time.time()))):
             stream_url = f"{clean_base}/api/stream/{ch['id']}/live.m3u8?key={auth.share_token(ch['id'])}"
         else:
             stream_url = ch.get("url", "")
@@ -4230,7 +4508,8 @@ def scheduled_televizo_renew_loop():
 
         now = int(time.time())
         if enabled and not is_running and now >= next_run:
-            print("[Televizo Auto-Renew] Starting 5-hour scheduled token renewal cycle...")
+            print(f"[Televizo Auto-Renew] Starting scheduled token renewal cycle "
+                  f"({TELEVIZO_RENEW_STATE['interval_seconds'] // 60} min interval)...")
             try:
                 with TELEVIZO_RENEW_LOCK:
                     TELEVIZO_RENEW_STATE["is_running"] = True
@@ -4975,7 +5254,17 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
                 self.end_headers()
                 return
 
-            # Primary stream failed! Test backup sources in priority order
+            # Primary stream failed! A televizo link dies with its token while the
+            # channel lives on, so try a fresh token before stored backups.
+            refreshed_url = _refresh_televizo_link(ch_dict)
+            if refreshed_url:
+                self.send_response(302)
+                self.send_header("Location", refreshed_url)
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                return
+
+            # Test backup sources in priority order
             for s in src_dicts:
                 if s["url"] == ch_dict["url"]:
                     continue
@@ -5128,7 +5417,8 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
             include_rutube = qs.get("include_rutube", ["1"])[0] == "1"
             include_televizo = qs.get("include_televizo", ["1"])[0] == "1"
             include_openindex = qs.get("include_openindex", ["1"])[0] == "1"
-            sources = find_stream_sources_by_name(q, tvg_id, limit=10, check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, include_openindex=include_openindex, target_country=country, strict=strict)
+            include_smotret = qs.get("include_smotret", ["1"])[0] == "1"
+            sources = find_stream_sources_by_name(q, tvg_id, limit=10, check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, include_openindex=include_openindex, include_smotret=include_smotret, target_country=country, strict=strict)
             self.send_json({"sources": sources})
             return
 
@@ -5265,6 +5555,7 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
             include_yt = bool(body.get("include_yt", True))
             include_rutube = bool(body.get("include_rutube", True))
             include_televizo = bool(body.get("include_televizo", True))
+            include_smotret = bool(body.get("include_smotret", True))
 
             queries = []
             if channel_ids:
@@ -5284,7 +5575,7 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
                     break
                 queries.append(item)
 
-            results = bulk_find_sources_for_names(queries[:100], check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, target_country=country, strict=strict)
+            results = bulk_find_sources_for_names(queries[:100], check_live=check_live, include_web=include_web, include_yt=include_yt, include_rutube=include_rutube, include_televizo=include_televizo, include_smotret=include_smotret, target_country=country, strict=strict)
             found_count = sum(1 for r in results if r.get("found"))
             online_count = sum(1 for r in results if r.get("status") == "online")
             self.send_json({
@@ -6450,11 +6741,17 @@ def run_server(port: int = 8765):
     threading.Thread(target=ensure_stream_sources_loaded, daemon=True).start()
 
     if is_lightweight_panel:
-        print("[Cloud Panel Mode] Heavy background Playwright/probe loops offloaded to GitHub Actions.")
+        print("[Cloud Panel Mode] Probe loop off; Televizo token renewal runs on a short cycle.")
         with SCHEDULER_LOCK:
             SCHEDULER_STATE["enabled"] = False
         with TELEVIZO_RENEW_LOCK:
-            TELEVIZO_RENEW_STATE["enabled"] = False
+            # Tokens live about an hour (five at most), so renewal has to run well
+            # inside that window instead of the desktop five-hour cycle.
+            TELEVIZO_RENEW_STATE["enabled"] = True
+            TELEVIZO_RENEW_STATE["interval_hours"] = 1
+            TELEVIZO_RENEW_STATE["interval_seconds"] = 40 * 60
+            TELEVIZO_RENEW_STATE["next_run_at"] = int(time.time()) + 40 * 60
+        threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()
     else:
         threading.Thread(target=scheduled_health_monitor_loop, daemon=True).start()
         threading.Thread(target=scheduled_televizo_renew_loop, daemon=True).start()

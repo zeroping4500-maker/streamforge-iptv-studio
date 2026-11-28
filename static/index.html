@@ -560,6 +560,10 @@ NHK World Japan"></textarea>
                   <input type="checkbox" id="bulkSourceIncludeTelevizo" checked />
                   <span>📺 <strong>Include Televizo.live Live Extractor</strong> (1HD, Ani, 24 Dok, Big Planet, and 330+ channels)</span>
                 </label>
+                <label class="checkbox-label" title="Searches the smotret.tv RU catalogue (711 channels) and resolves the matched channel">
+                  <input type="checkbox" id="bulkSourceIncludeSmotret" checked />
+                  <span>🇷🇺 <strong>Include Smotret.tv RU Catalogue</strong> (Первый, Россия 1, ТНТ, Звезда, Матч and 700+ channels)</span>
+                </label>
                 <label class="checkbox-label">
                   <input type="checkbox" id="bulkSourceProbeLive" checked />
                   <span>🩺 Probe each found `.m3u8` stream live for Online status & latency</span>
@@ -737,6 +741,10 @@ NHK World Japan"></textarea>
               <input type="checkbox" id="sourceFinderIncludeTelevizo" checked />
               <span>📺 Televizo.live</span>
             </label>
+            <label class="checkbox-label" style="white-space:nowrap;" title="Search the smotret.tv RU catalogue and resolve the matched channel">
+              <input type="checkbox" id="sourceFinderIncludeSmotret" checked />
+              <span>🇷🇺 Smotret.tv</span>
+            </label>
             <label class="checkbox-label" style="white-space:nowrap;">
               <input type="checkbox" id="sourceFinderProbeLive" checked />
               <span>🩺 Probe live</span>
@@ -911,10 +919,10 @@ NHK World Japan"></textarea>
               <strong>Automated Fallback Guard</strong>
               <span class="badge badge-indigo" id="schedFrequencyBadge">12x / Day (Every 2h)</span>
               <span class="badge badge-success" id="schedFailoversBadge">0 Auto-Failovers</span>
-              <span class="badge badge-primary" id="televizoRenewBadge">🔄 Televizo Auto-Renew: Every 5h</span>
+              <span class="badge badge-primary" id="televizoRenewBadge">🔄 Televizo Auto-Renew: Every 40m</span>
             </div>
             <div class="sched-meta" id="schedTimestampsText">Last check: Never · Next check: Scheduled</div>
-            <div class="sched-meta" id="televizoRenewMeta" style="color:#38bdf8; font-size:0.8rem; margin-top:2px;">Next Televizo Token Refresh: Scheduled in 5h</div>
+            <div class="sched-meta" id="televizoRenewMeta" style="color:#38bdf8; font-size:0.8rem; margin-top:2px;">Next Televizo Token Refresh: scheduled shortly</div>
           </div>
           <div class="sched-actions">
             <select id="schedFrequencySelect" class="select-dark" title="Check Frequency">

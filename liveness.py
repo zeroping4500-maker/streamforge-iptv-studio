@@ -68,6 +68,15 @@ def token_expiry(url):
                     found.append(_epoch(raw))
         elif key_l in ("token", "jwt", "auth"):
             found.append(_jwt_exp(value))
+        elif key_l == "wmsauthsign":
+            # Flussonic/nginx secure link: <hash>-<expiry epoch>-<policy>
+            for part in value.split("-"):
+                if part.isdigit():
+                    found.append(_epoch(part))
+    # Path tokens such as /<nonce>/<channel>/<expiry epoch>/index.m3u8
+    for segment in parsed.path.split("/"):
+        if segment.isdigit() and len(segment) == 10:
+            found.append(_epoch(segment))
     found = [f for f in found if f]
     return max(found) if found else 0
 
@@ -75,7 +84,7 @@ def token_expiry(url):
 def is_signed(url):
     return token_expiry(url) > 0 or any(
         marker in (url or "").lower()
-        for marker in ("sign=", "sig=", "token=", "hdnts=", "policy=", "key-pair-id=")
+        for marker in ("sign=", "sig=", "token=", "hdnts=", "policy=", "key-pair-id=", "wmsauthsign=")
     )
 
 

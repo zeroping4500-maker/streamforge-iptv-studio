@@ -941,11 +941,12 @@ async function runDedicatedSourceSearch() {
   const includeYt = (document.getElementById('sourceFinderIncludeYoutube') && document.getElementById('sourceFinderIncludeYoutube').checked) ? '1' : '0';
   const includeRutube = (document.getElementById('sourceFinderIncludeRutube') && document.getElementById('sourceFinderIncludeRutube').checked) ? '1' : '0';
   const includeTelevizo = (document.getElementById('sourceFinderIncludeTelevizo') && document.getElementById('sourceFinderIncludeTelevizo').checked) ? '1' : '0';
+  const includeSmotret = (document.getElementById('sourceFinderIncludeSmotret') && document.getElementById('sourceFinderIncludeSmotret').checked) ? '1' : '0';
   const container = document.getElementById('sourceFinderResults');
   container.innerHTML = `<div class="empty-state" style="padding:28px;"><p>🔎 Searching 38,000+ indexed streams, the open m3u8 web index, Televizo, RuTube, YouTube Live & web for "<strong>${escapeHtml(q)}</strong>"...</p></div>`;
 
   try {
-    const data = await api(`/api/sources/search?q=${encodeURIComponent(q)}&probe=${probe}&include_web=${includeWeb}&include_yt=${includeYt}&include_rutube=${includeRutube}&include_televizo=${includeTelevizo}&country=${encodeURIComponent(country)}&strict=${strict}`);
+    const data = await api(`/api/sources/search?q=${encodeURIComponent(q)}&probe=${probe}&include_web=${includeWeb}&include_yt=${includeYt}&include_rutube=${includeRutube}&include_televizo=${includeTelevizo}&include_smotret=${includeSmotret}&country=${encodeURIComponent(country)}&strict=${strict}`);
     const sources = data.sources || [];
     const replaceId = document.getElementById('sourceFinderReplaceChannelId').value;
 
@@ -1961,8 +1962,9 @@ async function refreshBrokenChannelsModal() {
     const tvRenew = data.televizo_renew || {};
     const tvBadge = document.getElementById('televizoRenewBadge');
     if (tvBadge) {
-      const tvHrs = tvRenew.interval_hours || 5;
-      tvBadge.textContent = tvRenew.is_running ? '🔄 Televizo: Syncing Now...' : `🔄 Televizo Auto-Renew: Every ${tvHrs}h`;
+      const secs = tvRenew.interval_seconds || (tvRenew.interval_hours || 5) * 3600;
+      const tvEvery = secs < 3600 ? `${Math.round(secs / 60)}m` : `${Math.round(secs / 3600)}h`;
+      tvBadge.textContent = tvRenew.is_running ? '🔄 Televizo: Syncing Now...' : `🔄 Televizo Auto-Renew: Every ${tvEvery}`;
     }
     const tvMeta = document.getElementById('televizoRenewMeta');
     if (tvMeta) {
@@ -2988,6 +2990,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const include_yt = document.getElementById('bulkSourceIncludeYoutube') ? document.getElementById('bulkSourceIncludeYoutube').checked : true;
     const include_rutube = document.getElementById('bulkSourceIncludeRutube') ? document.getElementById('bulkSourceIncludeRutube').checked : true;
     const include_televizo = document.getElementById('bulkSourceIncludeTelevizo') ? document.getElementById('bulkSourceIncludeTelevizo').checked : true;
+    const include_smotret = document.getElementById('bulkSourceIncludeSmotret') ? document.getElementById('bulkSourceIncludeSmotret').checked : true;
     const btn = document.getElementById('btnRunBulkSourceSearch');
     btn.disabled = true;
     btn.textContent = '🔎 Searching & Probing (≤100)...';
@@ -2996,7 +2999,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await api('/api/sources/bulk-search', {
         method: 'POST',
-        body: JSON.stringify({ raw_text, probe_live, include_web, include_yt, include_rutube, include_televizo, country, strict }),
+        body: JSON.stringify({ raw_text, probe_live, include_web, include_yt, include_rutube, include_televizo, include_smotret, country, strict }),
       });
       stopProgressPolling();
       state.bulkSourceMainResults = res.results || [];
