@@ -20,6 +20,7 @@ import gzip
 import html
 import io
 import json
+import liveness
 import os
 import re
 import socket
@@ -3360,6 +3361,12 @@ def build_m3u_export(playlist: dict, channels: list, smart_failover: bool = Fals
     for ch in channels:
         if not ch.get("enabled", 1):
             continue
+        stream_url = ch.get("url", "")
+        # An expired signature can never play, in any player: leave it out instead of
+        # shipping a dead line a viewer will blame the playlist for.
+        expiry = liveness.token_expiry(stream_url)
+        if expiry and expiry <= int(time.time()):
+            continue
         attrs = []
         if ch.get("tvg_id"):
             attrs.append(f'tvg-id="{ch["tvg_id"]}"')
@@ -3840,6 +3847,62 @@ def _remember_referer(url: str, referrer: str) -> None:
             REFERRER_HINTS[host] = referrer
 
 
+def _fetch_bytes(url: str, headers: dict, timeout: float, limit: int = 65536, byte_range: str = ""):
+    """GET a playlist or segment and return (bytes, final_url, content_type, code)."""
+    hdrs = dict(headers)
+    if byte_range:
+        hdrs["Range"] = byte_range
+    req = urllib.request.Request(url, headers=hdrs, method="GET")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read(limit), (resp.geturl() or url), resp.headers.get("Content-Type", ""), resp.getcode()
+
+
+def _verify_hls(final_url: str, text: str, headers: dict, timeout: float, cid, url: str,
+                started: float, expires_at: int) -> dict:
+    """
+    Follow an HLS manifest the way a player does: reject a finished playlist, then
+    fetch the newest segment (the one playback starts on) and require real media
+    bytes. A manifest whose first child happens to work is not enough.
+    """
+    def dead(err):
+        return {"id": cid, "url": url, "status": "offline",
+                "latency_ms": int((time.time() - started) * 1000), "error": err, "expires_at": expires_at}
+
+    if liveness.playlist_is_finished(text):
+        return dead("Stream ended (EXT-X-ENDLIST)")
+    children = liveness.media_playlist_segments(text)
+    if not children:
+        return dead("Empty HLS manifest (no segments)")
+
+    child_url = urllib.parse.urljoin(final_url, children[-1])
+    try:
+        chunk, child_final, ctype, code = _fetch_bytes(child_url, headers, min(timeout, 3.5))
+    except Exception as exc:
+        return dead(f"Playlist child failed: {str(exc)[:60]}")
+    if not (200 <= code < 400) or not chunk or _is_html_or_error_body(chunk, ctype):
+        return dead("Stream segment unreachable or blocked")
+
+    if chunk.lstrip().startswith(b"#EXTM3U"):
+        child_text = chunk.decode("utf-8", errors="replace")
+        if liveness.playlist_is_finished(child_text):
+            return dead("Stream ended (EXT-X-ENDLIST)")
+        segments = liveness.media_playlist_segments(child_text)
+        if not segments:
+            return dead("Empty variant HLS playlist")
+        segment_url = urllib.parse.urljoin(child_final, segments[-1])
+        try:
+            data, _, stype, scode = _fetch_bytes(segment_url, headers, min(timeout, 3.0), 4096, "bytes=0-4096")
+        except Exception as exc:
+            return dead(f"Media segment failed: {str(exc)[:60]}")
+        if not (200 <= scode < 400) or not data or _is_html_or_error_body(data, stype):
+            return dead("Media segment failed")
+        if not liveness.looks_like_media(data, stype):
+            return dead("Media segment is not video data")
+    elif not liveness.looks_like_media(chunk, ctype):
+        return dead("Manifest child is not video data")
+    return None
+
+
 def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
     """
     Deep stream liveness probe matching real IPTV player (VLC/TiviMate) behavior:
@@ -3853,6 +3916,11 @@ def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
         return {"id": cid, "url": url, "status": "offline", "latency_ms": 0, "error": "Unsupported protocol"}
 
     start = time.time()
+    expires_at = liveness.token_expiry(url)
+    if expires_at and expires_at <= int(start):
+        # The signature already died: no player can open this link, whatever the server answers.
+        return {"id": cid, "url": url, "status": "offline", "latency_ms": 0,
+                "error": "Signed link expired", "expires_at": expires_at}
     headers = {
         "User-Agent": channel_row.get("user_agent")
         or "Mozilla/5.0 (VLC/3.0.20 LibVLC/3.0.20) ZEMYIPTV/3.0",
@@ -3911,49 +3979,16 @@ def probe_stream(channel_row: dict, timeout: float = 4.5) -> dict:
 
             if is_hls:
                 text = chunk.decode("utf-8", errors="replace")
-                child_urls = [
-                    line.strip()
-                    for line in text.splitlines()
-                    if line.strip() and not line.strip().startswith("#")
-                ]
-                if not child_urls:
-                    return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Empty HLS manifest (no segments)"}
-
-                # Verify first child URL (variant .m3u8 or .ts/.m4s segment) is actually reachable
-                first_child = urllib.parse.urljoin(final_url, child_urls[0])
-                child_hdrs = dict(headers)
-                if ".m3u8" not in first_child.lower():
-                    child_hdrs["Range"] = "bytes=0-1023"
-
-                creq = urllib.request.Request(first_child, headers=child_hdrs, method="GET")
-                with urllib.request.urlopen(creq, timeout=min(timeout, 3.5)) as cresp:
-                    ccode = cresp.getcode()
-                    cct = cresp.headers.get("Content-Type", "")
-                    cchunk = cresp.read(4096)
-                    if not (200 <= ccode < 400) or not cchunk or _is_html_or_error_body(cchunk, cct):
-                        return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Stream segment unreachable or blocked"}
-
-                    # If child was a variant .m3u8 (master -> media playlist), verify it has segments too
-                    if cchunk.lstrip().startswith(b"#EXTM3U"):
-                        ctext = cchunk.decode("utf-8", errors="replace")
-                        seg_urls = [
-                            ln.strip()
-                            for ln in ctext.splitlines()
-                            if ln.strip() and not ln.strip().startswith("#")
-                        ]
-                        if not seg_urls:
-                            return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Empty variant HLS playlist"}
-                        first_seg = urllib.parse.urljoin(cresp.geturl() or first_child, seg_urls[0])
-                        seg_hdrs = dict(headers)
-                        seg_hdrs["Range"] = "bytes=0-511"
-                        sreq = urllib.request.Request(first_seg, headers=seg_hdrs, method="GET")
-                        with urllib.request.urlopen(sreq, timeout=min(timeout, 3.0)) as sresp:
-                            schunk = sresp.read(512)
-                            if not (200 <= sresp.getcode() < 400) or not schunk or _is_html_or_error_body(schunk, sresp.headers.get("Content-Type", "")):
-                                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed, "error": "Media segment failed"}
+                failure = _verify_hls(final_url, text, headers, timeout, cid, url, start, expires_at)
+                if failure:
+                    return failure
+            elif not liveness.looks_like_media(chunk, content_type):
+                return {"id": cid, "url": url, "status": "offline", "latency_ms": elapsed,
+                        "error": "Not a video stream", "expires_at": expires_at}
 
             elapsed = int((time.time() - start) * 1000)
-            return {"id": cid, "url": url, "status": "online", "latency_ms": elapsed, "error": ""}
+            return {"id": cid, "url": url, "status": "online", "latency_ms": elapsed, "error": "",
+                    "expires_at": expires_at}
     except urllib.error.HTTPError as e:
         elapsed = int((time.time() - start) * 1000)
         status = "offline" if e.code in (401, 403, 404, 410, 500, 502, 503, 504) else "warning"

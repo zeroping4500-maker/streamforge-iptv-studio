@@ -154,6 +154,10 @@
     if (!ok || !payload || !payload.url) {
       throw new Error((payload && payload.error) || `Google sign-in is unavailable (HTTP ${status})`);
     }
+    // Keep the address that can tell us who came back (hosted flow only).
+    if (payload.pickup) sessionStorage.setItem("zemy.authPickup", payload.pickup);
+    else sessionStorage.removeItem("zemy.authPickup");
+    sessionStorage.setItem("zemy.pendingAuth", "google");
     return payload.url;
   }
 
@@ -222,11 +226,13 @@
   }
 
   async function resumeGoogle() {
-    // Same-origin fetch through the 302 proxy: the browser carries the Neon
-    // session cookie from the OAuth callback; the auth host URL stays hidden.
+    // Google's callback sets its cookie on the auth host, not on this origin.
+    // Ask that host who the visitor is, then trade the token for our own session.
+    const pickup = sessionStorage.getItem("zemy.authPickup");
+    if (!pickup) return false;
     let token = null;
     try {
-      const response = await fetch("/api/auth/resume", { redirect: "follow", credentials: "same-origin" });
+      const response = await fetch(pickup, { credentials: "include", mode: "cors", cache: "no-store" });
       if (response.ok) {
         const data = await response.json().catch(() => null);
         token = (data && (data.token || (data.session && data.session.token))) || null;
@@ -234,22 +240,41 @@
     } catch (err) {
       token = null;
     }
-    if (!token) return false;
+    if (!token) {
+      setNote("Google finished but the panel got no session. Use the email code — it signs in on this site.", "bad");
+      return false;
+    }
     try {
       await exchangeToken(token);
+      sessionStorage.removeItem("zemy.authPickup");
+      sessionStorage.removeItem("zemy.pendingAuth");
       return true;
     } catch (err) {
       setNote(friendlyAuthError(err), "bad");
-      sessionStorage.removeItem("zemy.pendingAuth");
+      sessionStorage.removeItem("zemy.authPickup");
       return false;
     }
+  }
+
+  function authErrorFromQuery() {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("error");
+    if (!code) return;
+    setNote(friendlyAuthError({ message: code }), "bad");
+    params.delete("error");
+    const rest = params.toString();
+    history.replaceState(null, "", location.pathname + (rest ? "?" + rest : ""));
   }
 
   function friendlyAuthError(err) {
     const raw = String((err && err.message) || err || "");
     if (raw.includes("account_not_linked")) {
-      return "This Google account has no admin linked yet. Sign in once with the email code, then Google will work.";
+      return "This Google email already has an email-code account that Neon Auth will not attach Google to. Sign in with the email code — that is the same account and has admin access.";
     }
+    if (raw.includes("not_admin")) return "That account is not on the ZEMYIPTV admin list.";
+    if (raw.includes("google_not_configured")) return "Google sign-in is not configured on this server. Use the email code.";
+    if (raw.includes("sign_in_expired")) return "That Google sign-in took too long. Try again.";
+    if (raw.includes("google_")) return "Google sign-in failed. Try again, or use the email code.";
     if (/expired|invalid/i.test(raw)) return "Your session expired — sign in again.";
     return raw || "Sign-in failed";
   }
@@ -448,7 +473,10 @@
         el("div", { class: "name", text: channel.name }),
         el("div", { class: "meta", text: `${channel.category || "Uncategorized"} · ${channel.playlist_name || "no playlist"}` })
       ),
-      el("div", { class: "meta secondary" }, statusBadge(channel.status, channel.enabled)),
+      el("div", { class: "meta secondary" },
+        statusBadge(channel.status, channel.enabled),
+        channel.status_note ? el("span", { class: "note" }, " " + channel.status_note) : ""
+      ),
       el("div", { class: "actions" }, toggle, remove)
     );
   }
@@ -694,9 +722,10 @@
     }
     if (await resumeGoogle()) return;
     showAuth();
+    authErrorFromQuery();
     if (sessionStorage.getItem("zemy.pendingAuth") === "google") {
       sessionStorage.removeItem("zemy.pendingAuth");
-      setNote("Google returned without a session. Try the email code instead.", "bad");
+      setNote("Google returned without a session. Try the email code, or configure the app's own Google client.", "bad");
     }
   }
 

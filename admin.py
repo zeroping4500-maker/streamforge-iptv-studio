@@ -14,6 +14,7 @@ import urllib.parse
 
 import auth
 import db
+import liveness
 
 RATE_LOCK = threading.Lock()
 RATE_STATE = {}
@@ -186,7 +187,7 @@ def _channels(query="", status="", limit=50, offset=0):
         rows = conn.execute(
             """
             SELECT c.id, c.name, c.category, c.status, c.enabled, c.latency_ms, c.playlist_id,
-                   p.name AS playlist_name, c.url
+                   p.name AS playlist_name, c.url, c.last_checked_at, c.last_error
               FROM channels c
               LEFT JOIN playlists p ON p.id = c.playlist_id
             """
@@ -194,7 +195,20 @@ def _channels(query="", status="", limit=50, offset=0):
             + " ORDER BY lower(c.name) LIMIT ? OFFSET ?",
             tuple(params) + (int(limit), int(offset)),
         ).fetchall()
-    return {"total": total, "items": [dict(r) for r in rows]}
+    # A stored "online" is only news until the signed link dies or the probe goes stale.
+    now = int(time.time())
+    items = []
+    for row in rows:
+        item = dict(row)
+        state, note = liveness.effective_status(
+            item.get("status"), item.get("url") or "", item.get("last_checked_at") or 0, now
+        )
+        item["status"] = state
+        if note:
+            item["status_note"] = note
+        item["expires_at"] = liveness.token_expiry(item.get("url") or "")
+        items.append(item)
+    return {"total": total, "items": items}
 
 
 def _providers():
@@ -297,7 +311,7 @@ def _resume(handler):
     needs to appear in the page source or the public config."""
     try:
         handler.send_response(302)
-        handler.send_header("Location", auth.resume_redirect_url())
+        handler.send_header("Location", auth.get_session_url())
         handler.send_header("Content-Length", "0")
         handler.send_header("Cache-Control", "no-store")
         handler.send_header("X-Content-Type-Options", "nosniff")
@@ -333,8 +347,10 @@ def _handle_auth_post(handler, path):
             _send(handler, {"token": token})
             return True
         if path == "/api/auth/google/start":
-            url = auth.google_signin_url(_request_origin(handler))
-            _send(handler, {"url": url})
+            origin = _request_origin(handler)
+            # Neon keeps the Google session on its own host; the panel needs that
+            # address to read the session back after the callback.
+            _send(handler, {"url": auth.google_signin_url(origin), "pickup": auth.get_session_url()})
             return True
     except auth.AuthError as exc:
         _error(handler, exc.status, exc.code, exc.message)

@@ -162,6 +162,71 @@ finally:
     server.terminate()
     server.wait(timeout=10)
 
+# --- channel liveness: HTTP 200 is not proof a channel plays ---
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+_LIVE_MEDIA = b"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:2\n#EXTINF:2.0,\nseg.ts\n"
+_TS_PACKET = b"\x47" + b"\x00" * 187
+
+
+class _StreamHandler(BaseHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+    def do_GET(self):
+        path = self.path.split("?")[0]
+        if path == "/live.m3u8":
+            body, ctype = _LIVE_MEDIA, "application/vnd.apple.mpegurl"
+        elif path == "/ended.m3u8":
+            body, ctype = _LIVE_MEDIA + b"#EXT-X-ENDLIST\n", "application/vnd.apple.mpegurl"
+        elif path == "/htmseg.m3u8":
+            body, ctype = _LIVE_MEDIA.replace(b"seg.ts", b"bad.ts"), "application/vnd.apple.mpegurl"
+        elif path == "/seg.ts":
+            body, ctype = _TS_PACKET, "video/mp2t"
+        else:  # a segment that answers 200 with an HTML error page
+            body, ctype = b"<html><body>blocked</body></html>", "text/html"
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+_streams = ThreadingHTTPServer(("127.0.0.1", 0), _StreamHandler)
+threading.Thread(target=_streams.serve_forever, daemon=True).start()
+_stream_base = f"http://127.0.0.1:{_streams.server_address[1]}"
+try:
+    import app as app_module
+
+    result = app_module.probe_stream({"id": "live", "url": _stream_base + "/live.m3u8"})
+    check("probe: HLS with a real TS segment is online", result["status"] == "online", result)
+    result = app_module.probe_stream({"id": "ended", "url": _stream_base + "/ended.m3u8"})
+    check("probe: EXT-X-ENDLIST playlist is offline", result["status"] == "offline" and "ENDLIST" in result["error"], result)
+    result = app_module.probe_stream({"id": "html", "url": _stream_base + "/htmseg.m3u8"})
+    check("probe: HTML instead of a media segment is offline", result["status"] == "offline", result)
+    result = app_module.probe_stream({"id": "expired", "url": _stream_base + "/live.m3u8?exp=" + str(int(time.time()) - 60)})
+    check("probe: expired signed link is offline", result["status"] == "offline" and "expired" in result["error"].lower(), result)
+    result = app_module.probe_stream({"id": "future", "url": _stream_base + "/live.m3u8?exp=" + str(int(time.time()) + 3600)})
+    check("probe: signed link with time left is online", result["status"] == "online", result)
+finally:
+    _streams.shutdown()
+
+import liveness
+
+check(
+    "liveness: signed online goes unknown when the probe is old",
+    liveness.effective_status("online", "http://h/a.m3u8", checked_at=int(time.time()) - 9 * 3600)[0] == "unknown",
+)
+check(
+    "liveness: expired signature is offline whatever the stored status",
+    liveness.effective_status("online", "http://h/a.m3u8?expire=%d" % (int(time.time()) - 5), checked_at=int(time.time()))[0] == "offline",
+)
+check(
+    "liveness: hdnts expiry is understood",
+    liveness.token_expiry("http://h/a.m3u8?hdnts=st=1~exp=1900000000~acl=%2f*") == 1900000000,
+)
+
 failed = [r for r in results if not r[1]]
 print(f"\n{len(results) - len(failed)}/{len(results)} passed")
 sys.exit(1 if failed else 0)

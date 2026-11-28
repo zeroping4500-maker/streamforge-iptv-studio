@@ -15,6 +15,8 @@ Nothing about a user's password or one-time code ever reaches this server.
 
 import base64
 import hashlib
+import hashlib
+import hmac
 import json
 import os
 import secrets
@@ -170,9 +172,8 @@ def google_signin_url(origin):
     return url
 
 
-def resume_redirect_url():
-    """Target for /api/auth/resume: the browser follows the 302 with its Neon
-    session cookie (set by the OAuth callback) so the URL stays out of the page."""
+def get_session_url():
+    """The auth host's session endpoint: what the panel reads after Google returns."""
     return base_url() + "/get-session"
 
 
