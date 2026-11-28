@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ZEMYIPTV Admin</title>
+<!-- The preview host serves static/ as files and runs no Python, so /admin has
+     no route there. This stub exists for that host only: the real server answers
+     /admin itself (app.py, the "/admin" and "/admin/" branch) and never reaches
+     this file. It hands the browser to admin.html, which the file server can serve. -->
+<meta http-equiv="refresh" content="0; url=/admin.html" />
+<link rel="canonical" href="/admin.html" />
+<style>
+  body { background: #05070d; color: #e2e8f0; font: 15px/1.5 system-ui, sans-serif; padding: 32px; }
+  a { color: #60a5fa; }
+</style>
+</head>
+<body>
+<p>The operator panel is at <a href="/admin.html">/admin.html</a>.</p>
+<p>Sign-in and the channel API need the Python server, so they work on the deployed site, not on this static preview.</p>
+</body>
+</html>
