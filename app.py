@@ -2269,10 +2269,49 @@ def find_televizo_channel_info(query: str) -> dict:
     return {}
 
 
+_PLAYWRIGHT_INSTALL_HINT = "Looks like Playwright was just installed"
+_CHROMIUM_READY = None
+
+
+def short_reason(reason: str, limit: int = 160) -> str:
+    """
+    One readable line for channel status text.
+
+    Playwright's launch failure arrives as a multi-line ASCII box with an
+    "installed or updated" hint; that belongs in a log, not in the panel.
+    """
+    text = "".join(ch for ch in str(reason or "") if ch not in "╔╗╚╝║═")
+    text = " ".join(text.split())
+    if "Executable doesn't exist" in text or _PLAYWRIGHT_INSTALL_HINT in text:
+        return "player needs a browser and Chromium is not installed"
+    return text[:limit]
+
+
+def chromium_ready() -> bool:
+    """
+    True only when the browser binary Playwright would launch is on disk.
+
+    Hosts install the playwright package without its browser download (Render's
+    image does), so a bare import is not proof. The probe is cached: the binary
+    cannot appear while the process lives.
+    """
+    global _CHROMIUM_READY
+    if _CHROMIUM_READY is None:
+        try:
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as p:
+                _CHROMIUM_READY = os.path.exists(p.chromium.executable_path)
+        except Exception:
+            _CHROMIUM_READY = False
+    return _CHROMIUM_READY
+
+
 def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> dict:
     """
     Extracts live .m3u8 stream from televizo.live using Playwright headless Chromium.
-    Accepts direct televizo URL or channel name.
+    Accepts direct televizo URL or channel name. Without a browser binary the HTTP
+    result is returned unchanged, so callers get browser_required, not a traceback.
     """
     page_url = ""
     ch_info = {}
@@ -2313,18 +2352,18 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
             "via": "http",
         }
 
-    try:
-        from playwright.sync_api import sync_playwright
-    except Exception:
+    if not chromium_ready():
         return {
             "found": False,
-            "error": http_res.get("error") or "player needs a browser and Chromium is not installed",
+            "error": short_reason(http_res.get("error") or "player needs a browser and Chromium is not installed"),
             "page": page_url,
             "browser_required": bool(http_res.get("browser_required")),
             "via": "http",
         }
 
     try:
+        from playwright.sync_api import sync_playwright
+
         with sync_playwright() as p:
             browser = p.chromium.launch(
                 headless=True,
@@ -2432,7 +2471,8 @@ def extract_televizo_stream_sync(page_or_name: str, timeout_sec: int = 12) -> di
                 }
             return {"found": False, "error": "No stream captured within timeout", "page": page_url, "elapsed_sec": elapsed}
     except Exception as e:
-        return {"found": False, "error": str(e), "page": page_url}
+        return {"found": False, "error": short_reason(e), "page": page_url}
+
 
 def search_televizo_live_streams_fast(channel_name: str, check_live: bool = True) -> list:
     """Finds and extracts the live stream for a channel from televizo.live if available."""
@@ -2611,17 +2651,18 @@ def _mark_televizo_failure(channel: dict, now: int, reason: str) -> None:
     """
     expiry = liveness.token_expiry(channel.get("url", ""))
     expired = bool(expiry and expiry <= now)
+    clean = short_reason(reason)
     try:
         with get_db() as conn:
             if expired:
                 conn.execute(
                     "UPDATE channels SET status = 'offline', last_error = ?, last_checked_at = ? WHERE id = ?",
-                    (f"link expired, refresh failed: {reason}"[:300], now, channel["id"]),
+                    (f"link expired, refresh failed: {clean}"[:300], now, channel["id"]),
                 )
             else:
                 conn.execute(
                     "UPDATE channels SET last_error = ? WHERE id = ?",
-                    (f"refresh failed: {reason}"[:300], channel["id"]),
+                    (f"refresh failed: {clean}"[:300], channel["id"]),
                 )
     except Exception as exc:
         print(f"[Televizo] could not record failure for {channel.get('name')}: {exc}")

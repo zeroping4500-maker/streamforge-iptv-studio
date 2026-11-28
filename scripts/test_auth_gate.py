@@ -373,6 +373,44 @@ check(
     found,
 )
 
+# A host can install the playwright package without its browser download (Render
+# does). Launching then raises a boxed install hint that used to be written into
+# channel status, so the missing binary must short-circuit to browser_required.
+playwright_launch_error = (
+    "BrowserType.launch: Executable doesn't exist at /opt/render/.cache/ms-playwright/"
+    "chromium_headless_shell-1255/chrome-headless-shell-linux64/chrome-headless-shell\n"
+    "╔═══════════════════════════════════════════════════════════════════════════════╗\n"
+    "║ Looks like Playwright was just installed or updated.                          ║\n"
+    "╚═══════════════════════════════════════════════════════════════════════════════╝"
+)
+_reason = app_module.short_reason(playwright_launch_error)
+check(
+    "televizo: launch traceback collapses to one readable line",
+    _reason == "player needs a browser and Chromium is not installed"
+    and "\n" not in _reason and "║" not in _reason,
+    _reason,
+)
+
+_real_ready = app_module.chromium_ready
+_real_resolve_tv_missing = ext.resolve_televizo_channel
+app_module.chromium_ready = lambda: False
+ext.resolve_televizo_channel = lambda page, timeout=12: {
+    "ok": False, "streams": [], "player": "", "referrer": "",
+    "error": playwright_launch_error, "browser_required": True,
+}
+try:
+    res = app_module.extract_televizo_stream_sync("https://televizo.live/channel.html", timeout_sec=5)
+finally:
+    app_module.chromium_ready = _real_ready
+    ext.resolve_televizo_channel = _real_resolve_tv_missing
+check(
+    "televizo: missing Chromium reports browser_required without leaking the hint",
+    res.get("found") is False
+    and res.get("browser_required") is True
+    and res.get("error") == "player needs a browser and Chromium is not installed",
+    res,
+)
+
 failed = [r for r in results if not r[1]]
 print(f"\n{len(results) - len(failed)}/{len(results)} passed")
 sys.exit(1 if failed else 0)
