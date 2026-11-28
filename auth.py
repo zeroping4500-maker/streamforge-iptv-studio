@@ -172,6 +172,21 @@ def google_signin_url(origin):
     return url
 
 
+def _share_secret():
+    raw = _env("ZEMY_ADMIN_SECRET") or _env("DATABASE_URL") or "zemyiptv"
+    return hashlib.sha256(("zemy-share:" + raw).encode("utf-8")).digest()
+
+
+def share_token(scope):
+    """Stable key that lets an IPTV player fetch one playlist without signing in."""
+    return hmac.new(_share_secret(), str(scope).encode("utf-8"), hashlib.sha256).hexdigest()[:24]
+
+
+def share_token_valid(scope, token):
+    candidate = (token or "").strip()
+    return bool(candidate) and hmac.compare_digest(share_token(scope), candidate)
+
+
 def get_session_url():
     """The auth host's session endpoint: what the panel reads after Google returns."""
     return base_url() + "/get-session"

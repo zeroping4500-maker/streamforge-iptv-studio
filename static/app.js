@@ -111,8 +111,10 @@ function updateUrlBoxes() {
   const net = state.networkInfo;
   if (!net) return;
 
-  const lanM3u = `${net.lan_url}/m3u/${pid}.m3u`;
-  const pubM3u = net.public_url ? `${net.public_url}/m3u/${pid}.m3u` : '';
+  const shareKey = ((state.playlists || []).find(p => p.id === pid) || {}).share_key || '';
+  const keyQuery = shareKey ? `?key=${shareKey}` : '';
+  const lanM3u = `${net.lan_url}/m3u/${pid}.m3u${keyQuery}`;
+  const pubM3u = net.public_url ? `${net.public_url}/m3u/${pid}.m3u${keyQuery}` : '';
 
   document.getElementById('lanPlaylistUrl').value = lanM3u;
   document.getElementById('modalLanPlaylistUrl').value = lanM3u;

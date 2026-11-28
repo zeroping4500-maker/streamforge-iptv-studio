@@ -3387,7 +3387,7 @@ def build_m3u_export(playlist: dict, channels: list, smart_failover: bool = Fals
             out.append(f'#EXTVLCOPT:http-referrer={ch["referrer"]}')
 
         if smart_failover and clean_base:
-            stream_url = f"{clean_base}/api/stream/{ch['id']}/live.m3u8"
+            stream_url = f"{clean_base}/api/stream/{ch['id']}/live.m3u8?key={auth.share_token(ch['id'])}"
         else:
             stream_url = ch.get("url", "")
         out.append(stream_url)
@@ -4469,6 +4469,18 @@ def generate_cloud_bundle_zip() -> bytes:
 # HTTP Request Handler & Universal CORS Stream Proxy
 # ---------------------------------------------------------------------------
 
+def _shared_link_ok(raw_path):
+    """A playlist or failover link carries ?key= so a player needs no sign-in cookie."""
+    parsed = urllib.parse.urlparse(raw_path or "")
+    match = re.match(r"^/m3u/([a-zA-Z0-9_-]+?)(?:\.(?:m3u8|m3u))?$", parsed.path)
+    if not match:
+        match = re.match(r"^/api/stream/([a-zA-Z0-9_-]+)/live\.m3u8$", parsed.path)
+    if not match:
+        return False
+    key = (urllib.parse.parse_qs(parsed.query).get("key") or [""])[0]
+    return auth.share_token_valid(match.group(1), key)
+
+
 class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
@@ -4507,6 +4519,10 @@ class IPTVStudioHandler(SimpleHTTPRequestHandler):
     def _auth_gate(self, path, method):
         """Default-deny check. Returns True when the request may proceed."""
         if not auth_gate_enabled():
+            return True
+        if method in ("GET", "HEAD") and _shared_link_ok(self.path):
+            # A playlist or failover link with a valid ?key= is what an IPTV
+            # player fetches; players never carry an admin cookie.
             return True
         if method == "POST":
             ip = admin._client_ip(self)
@@ -5053,7 +5069,12 @@ the referrer it requires. If nothing plays, open it with the button above.</p>
                     ORDER BY p.updated_at DESC
                     """
                 ).fetchall()
-            self.send_json({"playlists": [dict(r) for r in rows]})
+            items = []
+            for row in rows:
+                item = dict(row)
+                item["share_key"] = auth.share_token(item["id"])
+                items.append(item)
+            self.send_json({"playlists": items})
             return
 
         pl_detail_match = re.match(r"^/api/playlists/([a-zA-Z0-9_-]+)$", path)

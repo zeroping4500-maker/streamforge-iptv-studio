@@ -158,6 +158,19 @@ try:
     auth.delete_session(sid)
     with store.get_db() as conn:
         conn.execute("DELETE FROM admin_users WHERE user_id = ?", (identity["user_id"],))
+    # --- shared playlist links: an IPTV player has no admin cookie ---
+    key_ok = auth.share_token("pl-1")
+    st, _, _ = req("GET", "/m3u/pl-1.m3u")
+    check("playlist link without key is refused", st == 401, st)
+    st, _, _ = req("GET", "/m3u/pl-1.m3u?key=" + key_ok)
+    check("playlist link with its key is not refused", st != 401, st)
+    st, _, _ = req("GET", "/m3u/pl-1.m3u?key=wrong")
+    check("playlist link with a wrong key is refused", st == 401, st)
+    st, _, _ = req("GET", "/api/stream/ch-1/live.m3u8?key=" + auth.share_token("ch-1"))
+    check("failover stream with its key is not refused", st != 401, st)
+    st, _, _ = req("GET", "/api/stream/ch-1/live.m3u8?key=" + auth.share_token("other"))
+    check("failover stream with another channel's key is refused", st == 401, st)
+
 finally:
     server.terminate()
     server.wait(timeout=10)
